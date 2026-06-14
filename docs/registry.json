@@ -15,6 +15,14 @@
       "file": "macro-dashboard.html",
       "category": "Macro",
       "date": "2026-06-14"
+    },
+    {
+      "id": "us-fed-observer-jl",
+      "title": "US Fed Observer — JL",
+      "description": "Refreshed Fed monitor: IORB cycle, inflation (Dallas Trimmed Mean + Core PCE), market & model-based expectations (breakevens, Cleveland Fed EXPINF, NY Fed SCE), labor market (JOLTS, V/U, NFP, UNRATE). Data via FRED as of Jun 14 2026.",
+      "file": "us-fed-observer-jl.html",
+      "category": "Macro",
+      "date": "2026-06-14"
     }
   ]
 }
