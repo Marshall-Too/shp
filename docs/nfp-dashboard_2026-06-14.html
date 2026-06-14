@@ -1,0 +1,738 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFP YTD Sector Analysis — 2022–2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --orange: #db6d28;
+    --purple: #bc8cff;
+    --teal: #39d353;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace; font-size: 13px; line-height: 1.5; }
+
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .header-left h1 { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .header-left p { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .header-right { text-align: right; font-size: 11px; color: var(--muted); }
+
+  .alert {
+    background: rgba(219, 109, 40, 0.12);
+    border-left: 3px solid var(--orange);
+    padding: 10px 16px;
+    margin: 16px 24px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 12px;
+    color: #e3b977;
+  }
+  .alert strong { color: var(--orange); }
+
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin: 16px 24px;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .kpi {
+    background: var(--surface);
+    padding: 14px 16px;
+  }
+  .kpi .label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .kpi .value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .kpi .sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  .warn { color: var(--orange); }
+  .neutral { color: var(--accent); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 0 24px;
+    margin-bottom: 16px;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    padding: 0 24px;
+    margin-bottom: 16px;
+  }
+  .grid-full {
+    padding: 0 24px;
+    margin-bottom: 16px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+  .card h3 {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card h3 .badge {
+    float: right;
+    font-size: 10px;
+    background: rgba(88,166,255,0.15);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+  }
+  .chart-wrap { position: relative; }
+
+  .sector-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .sector-table th { color: var(--muted); font-weight: 500; text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; }
+  .sector-table td { padding: 5px 8px; border-bottom: 1px solid rgba(48,54,61,0.5); font-variant-numeric: tabular-nums; }
+  .sector-table tr:last-child td { border-bottom: none; }
+  .bar-cell { width: 120px; }
+  .bar-bg { background: var(--surface2); border-radius: 2px; height: 6px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 2px; }
+  .confidence { font-size: 10px; padding: 1px 5px; border-radius: 3px; display: inline-block; }
+  .conf-high { background: rgba(63,185,80,0.15); color: var(--green); }
+  .conf-med { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .conf-low { background: rgba(248,81,73,0.15); color: var(--red); }
+
+  .revision-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .revision-table th { color: var(--muted); font-weight: 500; text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; }
+  .revision-table td { padding: 5px 8px; border-bottom: 1px solid rgba(48,54,61,0.5); font-variant-numeric: tabular-nums; }
+  .revision-table tr:last-child td { border-bottom: none; }
+
+  .jolts-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .jolts-box { flex: 1; background: var(--surface2); border-radius: 4px; padding: 10px 12px; }
+  .jolts-box .jl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .jolts-box .jv { font-size: 17px; font-weight: 700; margin: 2px 0; font-variant-numeric: tabular-nums; }
+  .jolts-box .jd { font-size: 10px; }
+
+  .thesis-box {
+    background: rgba(88,166,255,0.05);
+    border: 1px solid rgba(88,166,255,0.2);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .thesis-box p { color: var(--muted); font-size: 12px; line-height: 1.6; margin-bottom: 8px; }
+  .thesis-box p:last-child { margin-bottom: 0; }
+  .thesis-box strong { color: var(--text); }
+
+  .scenario-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .scenario-table th { color: var(--muted); font-weight: 500; padding: 5px 10px; border-bottom: 1px solid var(--border); text-align: left; font-size: 10px; text-transform: uppercase; }
+  .scenario-table td { padding: 7px 10px; border-bottom: 1px solid rgba(48,54,61,0.5); }
+  .scenario-table tr:last-child td { border-bottom: none; }
+
+  .tag { display: inline-block; font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 3px; font-family: monospace; margin-right: 3px; }
+  .tag-fact { background: rgba(63,185,80,0.2); color: #3fb950; }
+  .tag-est { background: rgba(210,153,34,0.2); color: #d29922; }
+  .tag-gap { background: rgba(188,140,255,0.2); color: #bc8cff; }
+  .tag-conflict { background: rgba(248,81,73,0.2); color: #f85149; }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 12px 24px;
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+
+  canvas { max-height: 220px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>US NFP — YTD Sector Analysis &amp; Birth-Death Credibility</h1>
+    <p>2022–2026 Comparison | Before &amp; After Benchmark Revisions | B-D Model Risk | JOLTS &amp; ADP Corroboration</p>
+  </div>
+  <div class="header-right">
+    <div>As of June 14, 2026</div>
+    <div style="margin-top:2px;">Data: BLS CES · JOLTS · ADP · Philly Fed</div>
+  </div>
+</div>
+
+<div class="alert">
+  <strong>Watch:</strong> 73% of May 2026 headline (+172K) came from Leisure &amp; Hospitality (+70K, 5× its recent avg) and Local Government (+55K) — both high revision-risk segments. The two prior spring cycles both produced &gt;−589K benchmark revisions concentrated in exactly these sectors. ADP implies L&amp;H was essentially <strong>flat in May</strong>; the ~70K gap is likely birth-death model driven.
+</div>
+
+<!-- KPI STRIP -->
+<div class="kpi-strip">
+  <div class="kpi">
+    <div class="label">2026 YTD (Jan–May)</div>
+    <div class="value pos">+603K</div>
+    <div class="sub">Total nonfarm</div>
+  </div>
+  <div class="kpi">
+    <div class="label">May 2026 Headline</div>
+    <div class="value pos">+172K</div>
+    <div class="sub">Beat est. of ~85K</div>
+  </div>
+  <div class="kpi">
+    <div class="label">2025 Benchmark Rev.</div>
+    <div class="value neg">−898K</div>
+    <div class="sub">Final, Jan 2026</div>
+  </div>
+  <div class="kpi">
+    <div class="label">2025 Revised Avg/mo</div>
+    <div class="value warn">+15K</div>
+    <div class="sub">vs. +48K initial</div>
+  </div>
+  <div class="kpi">
+    <div class="label">JOLTS Quits Rate</div>
+    <div class="value warn">~1.9%</div>
+    <div class="sub">vs. 2.3% pre-pandemic</div>
+  </div>
+  <div class="kpi">
+    <div class="label">ADP May Private</div>
+    <div class="value neutral">+122K</div>
+    <div class="sub">vs. BLS private ~117K</div>
+  </div>
+</div>
+
+<!-- ROW 1: YTD Comparison + Monthly Cadence -->
+<div class="grid">
+  <div class="card">
+    <h3>YTD Jan–May by Year (Initial Print) <span class="badge">Thousands, SA</span></h3>
+    <div class="chart-wrap">
+      <canvas id="ytdBar"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Monthly NFP — Jan to May, Each Year <span class="badge">Thousands, SA</span></h3>
+    <div class="chart-wrap">
+      <canvas id="monthlyLine"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ROW 2: May 2026 Sector + Benchmark Revisions -->
+<div class="grid">
+  <div class="card">
+    <h3>May 2026: Sector Breakdown &amp; Signal Quality</h3>
+    <table class="sector-table">
+      <thead>
+        <tr><th>Sector</th><th>Change (K)</th><th>Bar</th><th>Quality</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Leisure &amp; Hospitality</td>
+          <td class="pos">+70</td>
+          <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:100%;background:#f85149;"></div></div></td>
+          <td><span class="confidence conf-low">LOW</span></td>
+        </tr>
+        <tr>
+          <td>Local Government</td>
+          <td class="pos">+55</td>
+          <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:79%;background:#d29922;"></div></div></td>
+          <td><span class="confidence conf-med">MED</span></td>
+        </tr>
+        <tr>
+          <td>Health Care</td>
+          <td class="pos">+35</td>
+          <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:50%;background:#3fb950;"></div></div></td>
+          <td><span class="confidence conf-high">HIGH</span></td>
+        </tr>
+        <tr>
+          <td>Social Assistance</td>
+          <td class="pos">+12</td>
+          <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:17%;background:#3fb950;"></div></div></td>
+          <td><span class="confidence conf-high">HIGH</span></td>
+        </tr>
+        <tr>
+          <td>Mining</td>
+          <td class="pos">+5</td>
+          <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:7%;background:#58a6ff;"></div></div></td>
+          <td><span class="confidence conf-high">HIGH</span></td>
+        </tr>
+        <tr>
+          <td>Transport &amp; Warehousing</td>
+          <td>+1</td>
+          <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:1%;background:#58a6ff;"></div></div></td>
+          <td><span class="confidence conf-high">HIGH</span></td>
+        </tr>
+        <tr>
+          <td>Construction</td>
+          <td class="neutral">~0</td>
+          <td class="bar-cell"><div class="bar-bg"></div></td>
+          <td><span class="confidence conf-high">HIGH</span></td>
+        </tr>
+        <tr>
+          <td>Manufacturing</td>
+          <td class="neutral">~0</td>
+          <td class="bar-cell"><div class="bar-bg"></div></td>
+          <td><span class="confidence conf-high">HIGH</span></td>
+        </tr>
+        <tr>
+          <td>Prof. &amp; Business Services</td>
+          <td class="neutral">~0</td>
+          <td class="bar-cell"><div class="bar-bg"></div></td>
+          <td><span class="confidence conf-med">MED</span></td>
+        </tr>
+        <tr>
+          <td>Financial Activities</td>
+          <td class="neg">−22</td>
+          <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:31%;background:#8b949e;"></div></div></td>
+          <td><span class="confidence conf-high">HIGH</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:10px;font-size:10px;color:var(--muted);">Quality = reliability before next benchmark revision. Low = high B-D exposure; High = directly survey-measured.</div>
+  </div>
+
+  <div class="card">
+    <h3>Annual Benchmark Revisions — 2023 to 2026E</h3>
+    <div class="chart-wrap">
+      <canvas id="benchmarkBar"></canvas>
+    </div>
+    <table class="revision-table" style="margin-top:14px;">
+      <thead>
+        <tr><th>Benchmark</th><th>Prelim</th><th>Final</th><th>Dominant Sector</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>2023 (Jan 2024)</td><td class="pos">Upward</td><td class="pos">Upward</td><td style="color:var(--muted);">L&amp;H, PBS (positive)</td></tr>
+        <tr><td>2024 (Jan 2025)</td><td class="neg">−818K</td><td class="neg">−589K</td><td>L&amp;H, PBS, Retail</td></tr>
+        <tr><td>2025 (Jan 2026)</td><td class="neg">−911K</td><td class="neg">−898K</td><td>Trade (−309K), L&amp;H (−153K)</td></tr>
+        <tr style="opacity:0.6;"><td>2026 (Jan 2027)</td><td class="warn">TBD</td><td class="warn">TBD</td><td style="color:var(--orange);">L&amp;H at risk</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ROW 3: Sector Revision Breakdown + Birth-Death Share -->
+<div class="grid">
+  <div class="card">
+    <h3>2025 Final Benchmark — Sector Revision (−898K total) <span class="badge">Thousands</span></h3>
+    <div class="chart-wrap">
+      <canvas id="sectorRevBar"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <h3>B-D Model Share of Headline NFP (Annual, Estimated) <span class="badge">Estimate</span></h3>
+    <div class="chart-wrap">
+      <canvas id="bdShareChart"></canvas>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--muted);">
+      <span class="tag tag-est">ESTIMATE</span> B-D annual totals modeled from BLS historical patterns. As headline NFP decelerates, B-D's share of reported gains rises mechanically — increasing revision risk per dollar of headline gain.
+    </div>
+  </div>
+</div>
+
+<!-- ROW 4: JOLTS + ADP Comparison -->
+<div class="grid">
+  <div class="card">
+    <h3>JOLTS April 2026 — Flow vs. Stock Reconciliation</h3>
+    <div class="jolts-row">
+      <div class="jolts-box">
+        <div class="jl">Job Openings</div>
+        <div class="jv neutral">7.6M</div>
+        <div class="jd" style="color:var(--yellow);">↓ from 11M peak (2022)</div>
+      </div>
+      <div class="jolts-box">
+        <div class="jl">Hires</div>
+        <div class="jv warn">5.1M</div>
+        <div class="jd" style="color:var(--red);">Declining trend</div>
+      </div>
+      <div class="jolts-box">
+        <div class="jl">Separations</div>
+        <div class="jv neutral">5.0M</div>
+        <div class="jd" style="color:var(--muted);">Low, stable</div>
+      </div>
+      <div class="jolts-box">
+        <div class="jl">Quits</div>
+        <div class="jv warn">3.0M</div>
+        <div class="jd" style="color:var(--red);">Rate ~1.9% vs 2.3% norm</div>
+      </div>
+    </div>
+    <div class="thesis-box">
+      <p><strong>JOLTS-implied net NFP:</strong> Hires (5.1M) − Separations (5.0M) = <strong>+100K/month</strong> implied by flow data — below the 130–214K range currently reported in 2026. The gap is consistent with ~50–100K B-D model additions per month inflating the CES stock-change estimate.</p>
+      <p><strong>Low quits rate (1.9%):</strong> Workers are not voluntarily leaving for better jobs. This is structurally inconsistent with a labor market generating genuine +172K/month strength. It signals a "slow-hire, slow-fire" equilibrium, not expansion.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>ADP vs. NFP — May 2026 Sector Divergence <span class="badge">Key Signal</span></h3>
+    <div class="chart-wrap">
+      <canvas id="adpNfpChart"></canvas>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--muted);">
+      <span class="tag tag-est">ESTIMATE</span> ADP L&amp;H derived residually from ADP sector totals (Services 94K − Edu/Health 61K − Trade/Trans 25K − Financial 9K = −1K implied L&amp;H). BLS NFP shows +70K in same sector. The ~70K gap is the single most direct evidence of B-D model overstatement in May 2026.
+    </div>
+  </div>
+</div>
+
+<!-- ROW 5: Scenario + Watch -->
+<div class="grid">
+  <div class="card">
+    <h3>Scenario Analysis — 2026 Full Year Post-Benchmark Outcome</h3>
+    <table class="scenario-table">
+      <thead>
+        <tr><th>Scenario</th><th>Key Assumption</th><th>Full-Year 2026 Post-Benchmark</th><th>Monthly Avg</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="color:var(--red);font-weight:600;">Bear</td>
+          <td>B-D modification insufficient; L&amp;H/PBS spring additions phantom; Jan 2027 benchmark −700–900K</td>
+          <td class="neg">~300–400K</td>
+          <td class="neg">~25–35K/mo</td>
+        </tr>
+        <tr>
+          <td style="color:var(--yellow);font-weight:600;">Base</td>
+          <td>Modified B-D reduces but doesn't eliminate overstatement; Jan 2027 revision −300–500K</td>
+          <td class="warn">~500–700K</td>
+          <td class="warn">~40–60K/mo</td>
+        </tr>
+        <tr>
+          <td style="color:var(--green);font-weight:600;">Bull</td>
+          <td>B-D modification works; private cyclicals genuinely recovering; minimal revision</td>
+          <td class="pos">&gt;900K</td>
+          <td class="pos">&gt;100K/mo</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Monitoring Triggers — What Would Change the Thesis</h3>
+    <table class="sector-table">
+      <thead>
+        <tr><th>Trigger</th><th>Bearish if…</th><th>Bullish if…</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Sep 2026 prelim benchmark</td>
+          <td class="neg">&gt;−400K</td>
+          <td class="pos">&lt;−200K</td>
+        </tr>
+        <tr>
+          <td>JOLTS hires rate</td>
+          <td class="neg">Stays ≤3.3%</td>
+          <td class="pos">Rises to 3.6%+</td>
+        </tr>
+        <tr>
+          <td>L&amp;H monthly revisions</td>
+          <td class="neg">May +70K revised down ≥30K</td>
+          <td class="pos">May +70K holds or grows</td>
+        </tr>
+        <tr>
+          <td>Construction / Manufacturing</td>
+          <td class="neg">Remains flat/negative</td>
+          <td class="pos">Both +20K+ for 2 months</td>
+        </tr>
+        <tr>
+          <td>Philly Fed early benchmark</td>
+          <td class="neg">&gt;300K below CES</td>
+          <td class="pos">Converging to CES</td>
+        </tr>
+        <tr>
+          <td>ADP L&amp;H (derived)</td>
+          <td class="neg">Stays near zero vs BLS +40K+</td>
+          <td class="pos">Converges to BLS</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Full-width: Before vs After Revision Chart -->
+<div class="grid-full">
+  <div class="card">
+    <h3>YTD Jan–May: Initial Print vs. Post-Benchmark Estimate — 2022 to 2026 <span class="badge">Thousands</span></h3>
+    <div class="chart-wrap" style="max-height:180px;">
+      <canvas id="beforeAfterChart"></canvas>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--muted);">
+      <span class="tag tag-fact">FACT</span> 2022–2025 initial prints confirmed by BLS TED publications.
+      <span class="tag tag-est">ESTIMATE</span> Post-benchmark values for 2024 and 2025 estimated from full-year benchmark revision distributions.
+      <span class="tag tag-gap">GAP</span> 2026 post-benchmark not yet available (Jan 2027 benchmark).
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>Sources: BLS CES, BLS JOLTS, ADP National Employment Report, Philly Fed Early Benchmark, Econbrowser, Indeed Hiring Lab, MMG REA, Fox Business</span>
+  <span>Generated by Claude Code · Research workflow · 2026-06-14</span>
+</div>
+
+<script>
+const YEARS = ['2022','2023','2024','2025\n(initial)','2026'];
+const COLORS = {
+  '2022': '#58a6ff',
+  '2023': '#3fb950',
+  '2024': '#d29922',
+  '2025': '#bc8cff',
+  '2026': '#f0883e',
+};
+const gridColor = 'rgba(48,54,61,0.6)';
+const fontColor = '#8b949e';
+
+Chart.defaults.color = fontColor;
+Chart.defaults.borderColor = gridColor;
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', monospace";
+Chart.defaults.font.size = 11;
+
+// ── Chart 1: YTD Bar ──────────────────────────────
+new Chart(document.getElementById('ytdBar'), {
+  type: 'bar',
+  data: {
+    labels: ['2022','2023','2024','2025 (init.)','2026'],
+    datasets: [{
+      label: 'Jan–May YTD (K)',
+      data: [2394, 1656, 1324, 838, 603],
+      backgroundColor: ['#58a6ff','#3fb950','#d29922','#bc8cff','#f0883e'],
+      borderRadius: 3,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => `+${ctx.parsed.y.toLocaleString()}K`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: {
+        grid: { color: gridColor },
+        ticks: { callback: v => '+'+v+'K' }
+      }
+    }
+  }
+});
+
+// ── Chart 2: Monthly Line ─────────────────────────
+const months = ['Jan','Feb','Mar','Apr','May'];
+new Chart(document.getElementById('monthlyLine'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: [
+      { label: '2022', data: [467,678,431,428,390], borderColor:'#58a6ff', backgroundColor:'rgba(88,166,255,0.05)', tension:0.3, pointRadius:3 },
+      { label: '2023', data: [517,311,236,253,339], borderColor:'#3fb950', backgroundColor:'rgba(63,185,80,0.05)', tension:0.3, pointRadius:3 },
+      { label: '2024', data: [353,275,303,175,218], borderColor:'#d29922', backgroundColor:'rgba(210,153,34,0.05)', tension:0.3, pointRadius:3 },
+      { label: '2025', data: [143,151,228,177,139], borderColor:'#bc8cff', backgroundColor:'rgba(188,140,255,0.05)', tension:0.3, pointRadius:3, borderDash:[4,3] },
+      { label: '2026', data: [130,-92,214,179,172], borderColor:'#f0883e', backgroundColor:'rgba(240,136,62,0.08)', tension:0.3, pointRadius:4, borderWidth:2 },
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10 } },
+      tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y > 0 ? '+' : ''}${ctx.parsed.y}K` } }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: gridColor }, ticks: { callback: v => (v>=0?'+':'')+v+'K' } }
+    }
+  }
+});
+
+// ── Chart 3: Benchmark Bar ───────────────────────
+new Chart(document.getElementById('benchmarkBar'), {
+  type: 'bar',
+  data: {
+    labels: ['2023\n(Jan 2024)','2024 Final\n(Jan 2025)','2025 Final\n(Jan 2026)','2026 Est.\n(Jan 2027)'],
+    datasets: [{
+      label: 'Benchmark Revision (K)',
+      data: [80, -589, -898, null],
+      backgroundColor: ctx => {
+        const v = ctx.raw;
+        if (v === null) return 'rgba(240,136,62,0.3)';
+        return v >= 0 ? '#3fb950' : '#f85149';
+      },
+      borderRadius: 3,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ctx.raw !== null ? `${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y}K` : 'TBD' } }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: gridColor }, ticks: { callback: v => (v>=0?'+':'')+v+'K' } }
+    }
+  }
+});
+
+// ── Chart 4: Sector Revision (2025 Benchmark) ────
+new Chart(document.getElementById('sectorRevBar'), {
+  type: 'bar',
+  data: {
+    labels: ['Trade/Trans/Util','Leisure & Hosp','Prof & Bus Svcs','Manufacturing','Information','Other'],
+    datasets: [{
+      label: 'Revision (K)',
+      data: [-309, -153, -126, -98, -71, -141],
+      backgroundColor: '#f85149',
+      borderRadius: 3,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `${ctx.parsed.x}K` } }
+    },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { callback: v => v+'K' } },
+      y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+    }
+  }
+});
+
+// ── Chart 5: B-D Share ───────────────────────────
+new Chart(document.getElementById('bdShareChart'), {
+  type: 'bar',
+  data: {
+    labels: ['2022','2023','2024','2025\n(init.)','2026 YTD\n(est.)'],
+    datasets: [
+      { label: 'B-D Additions (K)', data: [642, 624, 689, 540, 225], backgroundColor: 'rgba(248,81,73,0.6)', borderRadius: 2 },
+      { label: 'Headline NFP (K)', data: [4500, 3000, 2200, 584, 1200], backgroundColor: 'rgba(88,166,255,0.25)', borderRadius: 2 },
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } },
+      tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ~${ctx.parsed.y.toLocaleString()}K` } }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: gridColor }, ticks: { callback: v => v.toLocaleString()+'K' } }
+    }
+  }
+});
+
+// ── Chart 6: ADP vs NFP Sector Comparison ────────
+new Chart(document.getElementById('adpNfpChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Edu & Health','Trade/Trans/Util','Financial','Construction','L&H (implied)','Total Private'],
+    datasets: [
+      {
+        label: 'ADP May 2026',
+        data: [61, 25, 9, 10, -1, 122],
+        backgroundColor: 'rgba(88,166,255,0.7)',
+        borderRadius: 2,
+      },
+      {
+        label: 'BLS NFP May 2026',
+        data: [47, 1, -22, 0, 70, 117],
+        backgroundColor: ctx => {
+          const vals = [47,1,-22,0,70,117];
+          const adp =  [61,25, 9,10,-1,122];
+          const idx = ctx.dataIndex;
+          const diff = Math.abs(vals[idx] - adp[idx]);
+          if (diff > 30) return 'rgba(248,81,73,0.7)';
+          return 'rgba(63,185,80,0.7)';
+        },
+        borderRadius: 2,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } },
+      tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y}K` } }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+      y: { grid: { color: gridColor }, ticks: { callback: v => (v>=0?'+':'')+v+'K' } }
+    }
+  }
+});
+
+// ── Chart 7: Before vs. After Revision ──────────
+new Chart(document.getElementById('beforeAfterChart'), {
+  type: 'bar',
+  data: {
+    labels: ['2022','2023','2024','2025','2026 (current)'],
+    datasets: [
+      {
+        label: 'Initial Print (Jan–May)',
+        data: [2394, 1656, 1324, 838, 603],
+        backgroundColor: 'rgba(88,166,255,0.6)',
+        borderRadius: 2,
+      },
+      {
+        label: 'Post-Benchmark Estimate',
+        data: [2394, 1750, 735, 325, null],
+        backgroundColor: ctx => {
+          const nulls = [null,null,null,null,null];
+          if (ctx.raw === null) return 'rgba(240,136,62,0.25)';
+          const initials = [2394,1750,1324,838,603];
+          const postBench = [2394,1750,735,325,null];
+          if (postBench[ctx.dataIndex] === null) return 'rgba(240,136,62,0.2)';
+          return postBench[ctx.dataIndex] >= initials[ctx.dataIndex] ? 'rgba(63,185,80,0.6)' : 'rgba(248,81,73,0.6)';
+        },
+        borderRadius: 2,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { position: 'right', labels: { boxWidth: 10, padding: 10 } },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.raw !== null ? `${ctx.dataset.label}: +${ctx.raw.toLocaleString()}K` : 'TBD (Jan 2027 benchmark)'
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: gridColor }, ticks: { callback: v => '+'+v.toLocaleString()+'K' } }
+    }
+  }
+});
+</script>
+</body>
+</html>
+
