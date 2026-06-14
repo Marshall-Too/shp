@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Macro Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f5f3;color:#1a1a1a;font-size:14px}
+.dash{padding:1rem;max-width:900px;margin:0 auto}
+.top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+h1{font-size:16px;font-weight:500}
+.badge{font-size:10px;font-weight:500;background:#e6f1fb;color:#0C447C;padding:2px 8px;border-radius:20px}
+.sub{font-size:11px;color:#666;margin-bottom:1rem;line-height:1.5}
+.error{background:#fff3f3;border:.5px solid #f5c6c6;border-radius:8px;padding:12px;margin-bottom:1rem;font-size:12px;color:#a32d2d}
+.nav{display:flex;gap:6px;margin-bottom:1rem;overflow-x:auto;padding-bottom:4px}
+.nav::-webkit-scrollbar{display:none}
+.nb{font-size:11px;padding:5px 10px;border-radius:20px;border:.5px solid rgba(0,0,0,.3);background:transparent;color:#666;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.nb.on{background:#1a1a1a;color:#fff;border-color:transparent}
+.section{display:none;margin-bottom:1.5rem}
+.section.show{display:block}
+.sh{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:.5px solid rgba(0,0,0,.12)}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.stitle{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:#666}
+.ssrc{font-size:10px;color:#999;margin-left:auto}
+.kg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.kpi{background:#fff;border:.5px solid rgba(0,0,0,.12);border-radius:10px;padding:10px 12px}
+.kl{font-size:10px;color:#666;margin-bottom:4px;line-height:1.3}
+.kv{font-size:18px;font-weight:500;margin-bottom:2px}
+.kc{font-size:10px}
+.up{color:#3B6D11}.dn{color:#A32D2D}.fl{color:#666}
+.ks{font-size:9px;color:#999;margin-top:3px}
+.cc{background:#fff;border:.5px solid rgba(0,0,0,.12);border-radius:10px;padding:12px;margin-bottom:10px}
+.ct{font-size:12px;font-weight:500;margin-bottom:2px}
+.cs{font-size:10px;color:#999;margin-bottom:10px}
+.cw{position:relative;width:100%;height:130px}
+.note{font-size:10px;color:#999;margin-top:6px;font-style:italic}
+.leg{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.legitem{display:flex;align-items:center;gap:4px;font-size:10px;color:#666}
+.legsq{width:10px;height:3px;border-radius:1px;flex-shrink:0}
+/* releases table */
+.rtable{width:100%;border-collapse:collapse;font-size:11px}
+.rtable th{text-align:left;padding:6px 8px;background:#f5f5f3;color:#666;font-weight:500;border-bottom:.5px solid rgba(0,0,0,.12)}
+.rtable td{padding:6px 8px;border-bottom:.5px solid rgba(0,0,0,.06)}
+.rtable tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+<div class="dash">
+  <div class="top">
+    <h1>Macro Dashboard</h1>
+    <span class="badge" id="badge">Loading…</span>
+  </div>
+  <p class="sub" id="sub">Loading data…</p>
+  <div id="err" class="error" style="display:none"></div>
+
+  <div class="nav">
+    <button class="nb on" onclick="show('all',this)">All</button>
+    <button class="nb" onclick="show('liq',this)">Liquidity</button>
+    <button class="nb" onclick="show('inf',this)">Inflation</button>
+    <button class="nb" onclick="show('exp',this)">Expectations</button>
+    <button class="nb" onclick="show('lab',this)">Labor</button>
+    <button class="nb" onclick="show('rel',this)">Releases</button>
+  </div>
+
+  <!-- LIQUIDITY -->
+  <div class="section show" id="sec-liq">
+    <div class="sh"><div class="dot" style="background:#185FA5"></div><span class="stitle">Money market &amp; liquidity</span><span class="ssrc" id="liq-date"></span></div>
+    <div class="kg" id="liq-kpis"></div>
+    <div class="cc">
+      <div class="ct">IORB rate (%) — hike &amp; cut cycle</div>
+      <div class="cs">Fed Board / FRED · Jul 2021 – May 2026</div>
+      <div class="cw"><canvas id="c1"></canvas></div>
+    </div>
+    <div class="cc">
+      <div class="ct">Lev. fund net short Tsy futures ($T)</div>
+      <div class="cs">CFTC CoT / OFR HF Monitor · 2021–2026</div>
+      <div class="cw"><canvas id="c2"></canvas></div>
+      <p class="note">$1T+ notional as of May 2025 (Chicago Fed)</p>
+    </div>
+  </div>
+
+  <!-- INFLATION -->
+  <div class="section show" id="sec-inf">
+    <div class="sh"><div class="dot" style="background:#0F6E56"></div><span class="stitle">Underlying inflation</span><span class="ssrc" id="inf-date"></span></div>
+    <div class="kg" id="inf-kpis"></div>
+    <div class="cc">
+      <div class="ct">Core PCE vs Dallas Trimmed Mean PCE 12m (%)</div>
+      <div class="cs">BEA/FRED: PCEPILFE · Dallas Fed: PCETRIM12M159SFRBDAL</div>
+      <div class="leg">
+        <span class="legitem"><span class="legsq" style="background:#1D9E75"></span>Core PCE YoY</span>
+        <span class="legitem"><span class="legsq" style="background:#0F6E56"></span>Trimmed Mean 12m</span>
+        <span class="legitem"><span class="legsq" style="background:rgba(162,45,45,0.4)"></span>Fed 2% target</span>
+      </div>
+      <div class="cw"><canvas id="c3"></canvas></div>
+    </div>
+    <div class="cc">
+      <div class="ct">Dallas Trimmed Mean PCE — 1m ann. vs 12m (%)</div>
+      <div class="cs">Dallas Fed · monthly</div>
+      <div class="leg">
+        <span class="legitem"><span class="legsq" style="background:#0F6E56"></span>12m</span>
+        <span class="legitem"><span class="legsq" style="background:#5DCAA5"></span>1m ann.</span>
+      </div>
+      <div class="cw"><canvas id="c3b"></canvas></div>
+    </div>
+  </div>
+
+  <!-- EXPECTATIONS -->
+  <div class="section show" id="sec-exp">
+    <div class="sh"><div class="dot" style="background:#854F0B"></div><span class="stitle">Inflation expectations</span><span class="ssrc" id="exp-date"></span></div>
+    <div class="kg" id="exp-kpis"></div>
+    <div class="cc">
+      <div class="ct">Market breakevens: 5Y &amp; 5Y5Y fwd (%)</div>
+      <div class="cs">FRED: T5YIE · T5YIFR</div>
+      <div class="leg">
+        <span class="legitem"><span class="legsq" style="background:#BA7517"></span>5Y breakeven</span>
+        <span class="legitem"><span class="legsq" style="background:#EF9F27"></span>5Y5Y fwd</span>
+      </div>
+      <div class="cw"><canvas id="c4"></canvas></div>
+    </div>
+    <div class="cc">
+      <div class="ct">NY Fed SCE — 1yr, 3yr &amp; 5yr (%)</div>
+      <div class="cs">NY Fed Survey of Consumer Expectations · monthly</div>
+      <div class="leg">
+        <span class="legitem"><span class="legsq" style="background:#BA7517"></span>1yr</span>
+        <span class="legitem"><span class="legsq" style="background:#EF9F27"></span>3yr</span>
+        <span class="legitem"><span class="legsq" style="background:#FAC775"></span>5yr</span>
+      </div>
+      <div class="cw"><canvas id="c5"></canvas></div>
+    </div>
+  </div>
+
+  <!-- LABOR -->
+  <div class="section show" id="sec-lab">
+    <div class="sh"><div class="dot" style="background:#533AB7"></div><span class="stitle">Labor market</span><span class="ssrc" id="lab-date"></span></div>
+    <div class="kg" id="lab-kpis"></div>
+    <div class="cc">
+      <div class="ct">JOLTS openings (M) &amp; V/U ratio</div>
+      <div class="cs">BLS JOLTS · monthly</div>
+      <div class="leg">
+        <span class="legitem"><span class="legsq" style="background:#533AB7"></span>Openings (M, left)</span>
+        <span class="legitem"><span class="legsq" style="background:#AFA9EC"></span>V/U ratio (right)</span>
+      </div>
+      <div class="cw"><canvas id="c6"></canvas></div>
+    </div>
+    <div class="cc">
+      <div class="ct">Monthly NFP vs ~100K breakeven (K)</div>
+      <div class="cs">BLS Employment Situation · May 2023 – Apr 2026</div>
+      <div class="cw"><canvas id="c7"></canvas></div>
+    </div>
+    <div class="cc">
+      <div class="ct">Unemployment rate (%)</div>
+      <div class="cs">BLS Employment Situation · monthly</div>
+      <div class="cw"><canvas id="c8"></canvas></div>
+    </div>
+  </div>
+
+  <!-- RELEASES -->
+  <div class="section show" id="sec-rel">
+    <div class="sh"><div class="dot" style="background:#444"></div><span class="stitle">Upcoming releases</span></div>
+    <div class="cc">
+      <table class="rtable" id="rel-table">
+        <thead><tr><th>Metric</th><th>Source</th><th>Next release</th><th>Covers</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+// Change this to your raw Gist URL once uploaded
+const DATA_URL = './data.json';
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const ls = (c, f, d) => ({
+  borderColor: c,
+  backgroundColor: f || 'transparent',
+  borderWidth: 1.5,
+  pointRadius: 0,
+  tension: 0.35,
+  fill: !!f,
+  borderDash: d || []
+});
+
+const baseOpt = () => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: { mode: 'index', intersect: false, titleFont: { size: 10 }, bodyFont: { size: 10 } }
+  },
+  scales: {
+    x: { ticks: { font: { size: 9 }, maxTicksLimit: 8, color: '#888' }, grid: { display: false } },
+    y: { ticks: { font: { size: 9 }, color: '#888', maxTicksLimit: 5 }, grid: { color: 'rgba(0,0,0,0.05)' } }
+  }
+});
+
+function kpiCard(k, accent) {
+  return `<div class="kpi">
+    <div class="kl">${k.label}</div>
+    <div class="kv" style="color:${accent}">${k.value}</div>
+    <div class="kc ${k.dir}">${k.change}</div>
+    <div class="ks">${k.source}</div>
+  </div>`;
+}
+
+function renderKpis(id, kpis, accent) {
+  document.getElementById(id).innerHTML = kpis.map(k => kpiCard(k, accent)).join('');
+}
+
+function renderReleases(releases) {
+  const tbody = document.querySelector('#rel-table tbody');
+  tbody.innerHTML = releases.map(r => `
+    <tr>
+      <td>${r.metric}</td>
+      <td style="color:#666">${r.source}</td>
+      <td style="font-weight:500">${r.next}</td>
+      <td style="color:#666">${r.covers}</td>
+    </tr>`).join('');
+}
+
+// ─── MAIN ─────────────────────────────────────────────────────────────────────
+fetch(DATA_URL)
+  .then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status} — could not load data.json`);
+    return r.json();
+  })
+  .then(d => {
+    // Header
+    document.getElementById('badge').textContent = `Updated ${d.meta.updated}`;
+    document.getElementById('sub').textContent = `${d.meta.sources} · ${d.meta.covers}`;
+
+    // Section dates (reuse meta for now; extend data.json per-section if needed)
+    ['liq','inf','exp','lab'].forEach(s => {
+      const el = document.getElementById(`${s}-date`);
+      if (el) el.textContent = d.meta.updated;
+    });
+
+    // KPI cards
+    renderKpis('liq-kpis', d.liquidity.kpis,    '#185FA5');
+    renderKpis('inf-kpis', d.inflation.kpis,     '#0F6E56');
+    renderKpis('exp-kpis', d.expectations.kpis,  '#854F0B');
+    renderKpis('lab-kpis', d.labor.kpis,         '#533AB7');
+
+    // Releases table
+    renderReleases(d.releases);
+
+    const ml = d.labels.monthly_61;
+    const jl = d.labels.jolts_59;
+    const nl = d.labels.nfp_28;
+    const target = Array(ml.length).fill(2.0);
+
+    // C1 — IORB
+    new Chart(document.getElementById('c1'), {
+      type: 'line',
+      data: { labels: ml, datasets: [{ label: 'IORB (%)', ...ls('#185FA5','rgba(24,95,165,0.08)'), data: d.liquidity.iorb, stepped: 'before' }] },
+      options: baseOpt()
+    });
+
+    // C2 — Lev short
+    new Chart(document.getElementById('c2'), {
+      type: 'line',
+      data: { labels: ml, datasets: [{ label: 'Net short ($T)', ...ls('#185FA5','rgba(24,95,165,0.07)'), data: d.liquidity.lev_short }] },
+      options: { ...baseOpt(), scales: { x: { ticks: { font:{size:9}, maxTicksLimit:8, color:'#888' }, grid:{display:false} }, y: { ticks: { font:{size:9}, color:'#888', maxTicksLimit:5, callback: v => v.toFixed(2)+'T' }, grid:{color:'rgba(0,0,0,0.05)'} } } }
+    });
+
+    // C3 — Core PCE vs Trimmed Mean
+    new Chart(document.getElementById('c3'), {
+      type: 'line',
+      data: { labels: ml, datasets: [
+        { label: 'Core PCE YoY (%)',   ...ls('#1D9E75','rgba(29,158,117,0.07)'), data: d.inflation.core_pce },
+        { label: 'Trimmed Mean 12m (%)',...ls('#0F6E56',null,[4,3]),             data: d.inflation.dtm_12m },
+        { label: 'Fed 2% target',       data: target, borderColor:'rgba(162,45,45,0.4)', borderDash:[3,3], borderWidth:1, pointRadius:0, fill:false, backgroundColor:'transparent' }
+      ]},
+      options: baseOpt()
+    });
+
+    // C3b — Trimmed Mean 1m vs 12m
+    new Chart(document.getElementById('c3b'), {
+      type: 'line',
+      data: { labels: ml, datasets: [
+        { label: '12m (%)',    ...ls('#0F6E56','rgba(15,110,86,0.07)'), data: d.inflation.dtm_12m },
+        { label: '1m ann. (%)',...ls('#5DCAA5',null,[4,3]),             data: d.inflation.dtm_1m }
+      ]},
+      options: baseOpt()
+    });
+
+    // C4 — Breakevens
+    new Chart(document.getElementById('c4'), {
+      type: 'line',
+      data: { labels: ml, datasets: [
+        { label: '5Y breakeven', ...ls('#BA7517'),          data: d.expectations.be_5y },
+        { label: '5Y5Y fwd',     ...ls('#EF9F27',null,[4,3]),data: d.expectations.be_5y5y }
+      ]},
+      options: baseOpt()
+    });
+
+    // C5 — SCE
+    new Chart(document.getElementById('c5'), {
+      type: 'line',
+      data: { labels: ml, datasets: [
+        { label: '1yr', ...ls('#BA7517'),          data: d.expectations.sce_1yr },
+        { label: '3yr', ...ls('#EF9F27',null,[4,3]),data: d.expectations.sce_3yr },
+        { label: '5yr', ...ls('#FAC775',null,[2,4]),data: d.expectations.sce_5yr }
+      ]},
+      options: baseOpt()
+    });
+
+    // C6 — JOLTS + V/U dual axis
+    new Chart(document.getElementById('c6'), {
+      type: 'line',
+      data: { labels: jl, datasets: [
+        { label: 'Openings (M)', data: d.labor.jolts, ...ls('#533AB7','rgba(83,58,183,0.07)'), yAxisID: 'y' },
+        { label: 'V/U ratio',    data: d.labor.vu,    ...ls('#AFA9EC',null,[4,3]),              yAxisID: 'y2' }
+      ]},
+      options: { ...baseOpt(), scales: {
+        x:  { ticks:{font:{size:9},maxTicksLimit:8,color:'#888'}, grid:{display:false} },
+        y:  { ticks:{font:{size:9},color:'#888',maxTicksLimit:5,callback:v=>v.toFixed(0)+'M'}, grid:{color:'rgba(0,0,0,0.05)'}, position:'left' },
+        y2: { ticks:{font:{size:9},color:'#AFA9EC',maxTicksLimit:5}, grid:{display:false}, position:'right' }
+      }}
+    });
+
+    // C7 — NFP bar
+    new Chart(document.getElementById('c7'), {
+      type: 'bar',
+      data: { labels: nl, datasets: [
+        { label: 'NFP (K)', data: d.labor.nfp, backgroundColor: d.labor.nfp.map(v => v >= 100 ? 'rgba(83,58,183,0.5)' : 'rgba(162,45,45,0.5)') },
+        { label: '~100K breakeven', data: Array(nl.length).fill(100), type: 'line', borderColor:'#888', borderDash:[5,4], pointRadius:0, borderWidth:1.5, backgroundColor:'transparent' }
+      ]},
+      options: baseOpt()
+    });
+
+    // C8 — U-rate
+    new Chart(document.getElementById('c8'), {
+      type: 'line',
+      data: { labels: ml, datasets: [{ label: 'U-rate (%)', ...ls('#533AB7','rgba(83,58,183,0.07)'), data: d.labor.urate }] },
+      options: baseOpt()
+    });
+  })
+  .catch(err => {
+    document.getElementById('err').style.display = 'block';
+    document.getElementById('err').textContent = `⚠ Failed to load data: ${err.message}. Check that data.json is in the same folder as index.html.`;
+    document.getElementById('badge').textContent = 'Error';
+    document.getElementById('sub').textContent = '';
+  });
+
+// ─── NAV ─────────────────────────────────────────────────────────────────────
+function show(id, btn) {
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  const map = { liq:'sec-liq', inf:'sec-inf', exp:'sec-exp', lab:'sec-lab', rel:'sec-rel' };
+  if (id === 'all') {
+    document.querySelectorAll('.section').forEach(s => s.classList.add('show'));
+  } else {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('show'));
+    document.getElementById(map[id])?.classList.add('show');
+  }
+}
+</script>
+</body>
+</html>

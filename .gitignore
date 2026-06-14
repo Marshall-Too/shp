@@ -1,0 +1,11 @@
+# Claude Code config (never publish)
+.claude/settings.json
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp

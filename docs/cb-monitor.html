@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Central Bank Monitor — Jun 2026</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>* { box-sizing: border-box; margin: 0; padding: 0; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState } = React;
+
+const data = {
+  macro_theme: "⚡ Strait of Hormuz shock has fractured G10 monetary consensus — ECB & BoJ hiking, Fed & BoE frozen, BoJ normalising, BI emergency off-cycle hike Jun 9, EM Asia on guard",
+  meetings: [
+    {
+      bank: "Bank of Canada",
+      abbr: "BoC",
+      flag: "🇨🇦",
+      region: "G10",
+      date: "Jun 10",
+      currentRate: "2.25%",
+      decision: "HOLD",
+      confidence: "High",
+      bias: "Neutral→Hawkish",
+      inflationNote: "Oil shock lifted CPI above 2% target; core inflation still contained",
+      growthNote: "GDP contracted Q4 2025 & Q1 2026; technical recession risk",
+      rateOutlook: "Hold through 2026; potential hike in early 2027",
+      keyWatch: "Core CPI, labour market data",
+      color: "#c8102e",
+      signal: "⏸",
+    },
+    {
+      bank: "European Central Bank",
+      abbr: "ECB",
+      flag: "🇪🇺",
+      region: "G10",
+      date: "Jun 11",
+      currentRate: "2.00%",
+      decision: "HIKE +25bp",
+      confidence: "Very High",
+      bias: "Hawkish",
+      inflationNote: "HICP at 3.8% Apr; energy-driven; stagflation risk. 74/80 economists expect hike",
+      growthNote: "GDP growth cut to 0.8% for 2026 — second straight downgrade",
+      rateOutlook: "2–3 hikes projected in 2026; terminal ~2.75%",
+      keyWatch: "Lagarde forward guidance; any core/services signal",
+      color: "#003399",
+      signal: "⬆",
+    },
+    {
+      bank: "Bank of Korea",
+      abbr: "BoK",
+      flag: "🇰🇷",
+      region: "Asia",
+      date: "May 28 ✓ / Jul",
+      currentRate: "2.50%",
+      decision: "HOLD → HIKE",
+      confidence: "High",
+      bias: "Hawkish Pivot",
+      inflationNote: "CPI at 2.7% 2026F (revised up); won weakness fuelling import inflation",
+      growthNote: "GDP upgraded to 2.6%; semis boom; positive output gap building",
+      rateOutlook: "Hike to 2.75% in Jul; 3.00% by year-end (Meritz forecast)",
+      keyWatch: "New Gov. Shin guidance; KRW/USD; housing prices",
+      color: "#003478",
+      signal: "⬆",
+    },
+    {
+      bank: "Reserve Bank of India",
+      abbr: "RBI",
+      flag: "🇮🇳",
+      region: "Asia",
+      date: "Jun 5 ✓",
+      currentRate: "5.25%",
+      decision: "HOLD",
+      confidence: "Confirmed",
+      bias: "Neutral",
+      inflationNote: "Middle East tensions adding to import costs; monitoring pass-through",
+      growthNote: "Resilient domestic demand; cautious on global headwinds",
+      rateOutlook: "Neutral stance maintained; easing unlikely near-term",
+      keyWatch: "WPI/CPI trajectory; INR stability",
+      color: "#FF9933",
+      signal: "⏸",
+    },
+    {
+      bank: "Bank Indonesia",
+      abbr: "BI",
+      flag: "🇮🇩",
+      region: "Asia",
+      date: "Jun 9 ✓ (off-cycle) + Jun 17–18",
+      currentRate: "5.50%",
+      decision: "HIKED +25bp ⚡",
+      confidence: "Confirmed",
+      bias: "Emergency Hawkish — Rupiah Defence",
+      inflationNote: "CPI 4.76% Feb; May hike +50bp; Jun 9 surprise off-cycle +25bp to 5.50% — 3rd hike in weeks to halt foreign outflows",
+      growthNote: "GDP 4.9–5.7% 2026F; robust domestic demand but capital outflow & IDR weakness near record lows a critical risk",
+      rateOutlook: "Scheduled Jun 17–18 meeting: further hike possible if IDR remains fragile; Prabowo policy uncertainty adding to pressure",
+      keyWatch: "IDR/USD stability (near record lows); capital outflow pace; Prabowo policy signals; MSCI/Moody's review",
+      color: "#CE1126",
+      signal: "⬆⚡",
+    },
+    {
+      bank: "Bank of Japan",
+      abbr: "BoJ",
+      flag: "🇯🇵",
+      region: "G10",
+      date: "Jun 16",
+      currentRate: "0.75%",
+      decision: "HIKE +25bp",
+      confidence: "High",
+      bias: "Hawkish",
+      inflationNote: "Core CPI raised to 2.8% for FY2026; persistent above-target inflation",
+      growthNote: "FY2026 growth cut to 0.5%; war headwinds; weak consumer",
+      rateOutlook: "→1.0% Jun; additional hike possible H2; ~1.25% year-end",
+      keyWatch: "JPY/USD (near 160); yen carry trade unwind risk",
+      color: "#bc002d",
+      signal: "⬆",
+    },
+    {
+      bank: "Reserve Bank of Australia",
+      abbr: "RBA",
+      flag: "🇦🇺",
+      region: "G10",
+      date: "Jun 16",
+      currentRate: "4.35%",
+      decision: "HOLD/HIKE",
+      confidence: "Split",
+      bias: "Hawkish",
+      inflationNote: "CPI at 4.6%; oil shock + fiscal overspend driving broad price rises",
+      growthNote: "Economy absorbing prior hike; affordability constraints",
+      rateOutlook: "Pause likely Jun; Aug hike possible; Westpac sees 4.85% year-end",
+      keyWatch: "Q2 CPI (Jul); wages data; housing",
+      color: "#00008b",
+      signal: "⏸⬆",
+    },
+    {
+      bank: "Federal Reserve",
+      abbr: "Fed",
+      flag: "🇺🇸",
+      region: "G10",
+      date: "Jun 17",
+      currentRate: "3.50–3.75%",
+      decision: "HOLD",
+      confidence: "Very High",
+      bias: "Paralysed/Data-Dependent",
+      inflationNote: "PCE elevated; Apr CPI showed persistent pressures; Goldman: no cuts in 2026",
+      growthNote: "Solid expansion; low-hire/low-fire labour market; Middle East uncertainty",
+      rateOutlook: "Hold through 2026; easing bias at risk of being removed",
+      keyWatch: "New Chair Warsh tone; dot plot; SEP inflation revisions",
+      color: "#003087",
+      signal: "⏸",
+    },
+    {
+      bank: "Bank of England",
+      abbr: "BoE",
+      flag: "🇬🇧",
+      region: "G10",
+      date: "Jun 18",
+      currentRate: "3.75%",
+      decision: "HOLD",
+      confidence: "High",
+      bias: "Hawkish Tilt",
+      inflationNote: "CPI projected 3.1–3.3% by Q3; energy pass-through; first hike dissent since 2023",
+      growthNote: "Stagnant jobs market; GDP subdued; stagflation parallels",
+      rateOutlook: "Hold Jun; hike possible H2 2026 if energy shock persists",
+      keyWatch: "Jun 17 CPI print; MPC vote split (8-1 prior)",
+      color: "#012169",
+      signal: "⏸",
+    },
+    {
+      bank: "Swiss National Bank",
+      abbr: "SNB",
+      flag: "🇨🇭",
+      region: "G10",
+      date: "Jun 18",
+      currentRate: "0.00%",
+      decision: "HOLD",
+      confidence: "High",
+      bias: "Neutral",
+      inflationNote: "Near zero inflation; CHF strength limiting import prices",
+      growthNote: "Modest growth; sheltered from direct energy shock",
+      rateOutlook: "Floor likely; could intervene via FX if CHF strengthens sharply",
+      keyWatch: "CHF/EUR rate; any FX intervention signals",
+      color: "#d52b1e",
+      signal: "⏸",
+    },
+    {
+      bank: "People's Bank of China",
+      abbr: "PBoC",
+      flag: "🇨🇳",
+      region: "Asia",
+      date: "Jun 20 (LPR)",
+      currentRate: "3.00% (1yr LPR)",
+      decision: "HOLD",
+      confidence: "High",
+      bias: "Easing Bias (Paused)",
+      inflationNote: "Deflationary pressure easing; oil shock adds complexity to easing case",
+      growthNote: "Resilient H1 2026; growth target cut to 4.5–5%; wait-and-see mode",
+      rateOutlook: "LPR hold near-term; RRR cut possible; full easing cycle delayed",
+      keyWatch: "Property sector stress; CNY stability; RRR timing",
+      color: "#DE2910",
+      signal: "⏸",
+    },
+  ],
+  rateTable: [
+    { bank: "Fed 🇺🇸", current: "3.50–3.75%", jun: "3.50–3.75%", dec: "3.50–3.75%", change: "→" },
+    { bank: "ECB 🇪🇺", current: "2.00%", jun: "2.25%", dec: "2.50–2.75%", change: "↑" },
+    { bank: "BoE 🇬🇧", current: "3.75%", jun: "3.75%", dec: "3.75–4.00%", change: "→↑" },
+    { bank: "BoJ 🇯🇵", current: "0.75%", jun: "1.00%", dec: "1.25%", change: "↑" },
+    { bank: "BoC 🇨🇦", current: "2.25%", jun: "2.25%", dec: "2.25%", change: "→" },
+    { bank: "RBA 🇦🇺", current: "4.35%", jun: "4.35%", dec: "4.60–4.85%", change: "→↑" },
+    { bank: "SNB 🇨🇭", current: "0.00%", jun: "0.00%", dec: "0.00%", change: "→" },
+    { bank: "PBoC 🇨🇳", current: "3.00%", jun: "3.00%", dec: "2.85–3.00%", change: "→↓" },
+    { bank: "BoK 🇰🇷", current: "2.50%", jun: "2.50%", dec: "3.00%", change: "↑" },
+    { bank: "RBI 🇮🇳", current: "5.25%", jun: "5.25%", dec: "5.25%", change: "→" },
+    { bank: "BI 🇮🇩", current: "5.50%", jun: "5.50–5.75%", dec: "5.50–5.75%", change: "↑" },
+  ],
+  portfolioImplications: [
+    { icon: "📉", title: "Duration Risk — G10 Govvies", body: "ECB hike cycle + BoJ normalisation = pressure on Bund & JGB duration. Underweight EU & JP long-end. BoE hold but hawkish tilt compresses gilt rally potential." },
+    { icon: "💵", title: "USD — Frozen Fed Advantage", body: "Fed holding with no cut bias keeps USD supported. New chair Warsh likely more hawkish. Watch June 17 CPI & dot plot for possible removal of easing bias — bearish Treasuries." },
+    { icon: "🇯🇵", title: "JPY Carry Trade Unwind", body: "BoJ hike to 1% triggers yen carry unwind risk. USD/JPY near 160 is historically an intervention trigger. Elevated EM/risk asset volatility if carry unwinds sharply." },
+    { icon: "🛢", title: "Energy Pass-Through Watch", body: "Hormuz shock is the dominant macro variable. Brent 50%+ above pre-war levels. All CB inflation forecasts are conditioned on no further escalation — the key tail risk for bond longs." },
+    { icon: "🇮🇩", title: "BI Emergency Hike — IDR Crisis Signal", body: "Bank Indonesia's surprise off-cycle +25bp hike on Jun 9 (3rd hike in weeks, now at 5.50%) signals acute IDR stress. Prabowo policy uncertainty + Hormuz-driven capital outflows = elevated EM contagion risk. Watch Jun 17–18 for a possible 4th hike." },
+    { icon: "🇦🇺", title: "AUD — RBA Hawkish Surprise Risk", body: "RBA already at 4.35% and potentially hiking again. Short AUD duration; watch Q2 CPI in July. Westpac sees 4.85% year-end — well above market pricing." },
+  ],
+};
+
+const decisionColor = (d) => {
+  if (d.includes("HIKE")) return { bg: "#fef2f2", text: "#991b1b", border: "#fca5a5" };
+  if (d.includes("CUT")) return { bg: "#f0fdf4", text: "#166534", border: "#86efac" };
+  return { bg: "#f8fafc", text: "#334155", border: "#cbd5e1" };
+};
+
+const biasIcon = (bias) => {
+  if (bias.toLowerCase().includes("hawk")) return "🦅";
+  if (bias.toLowerCase().includes("dove") || bias.toLowerCase().includes("eas")) return "🕊️";
+  return "⚖️";
+};
+
+function App() {
+  const [activeTab, setActiveTab] = useState("calendar");
+  const [expandedBank, setExpandedBank] = useState(null);
+
+  const g10 = data.meetings.filter((m) => m.region === "G10");
+  const asia = data.meetings.filter((m) => m.region === "Asia");
+
+  return (
+    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", background: "#0f172a", minHeight: "100vh", color: "#e2e8f0", padding: "0" }}>
+      {/* Header */}
+      <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)", borderBottom: "1px solid #334155", padding: "20px 24px 16px" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+            <span style={{ fontSize: 10, letterSpacing: "0.15em", color: "#64748b", textTransform: "uppercase", fontWeight: 600 }}>Securities Portfolio Intelligence</span>
+            <span style={{ background: "#dc2626", color: "white", fontSize: 9, padding: "2px 6px", borderRadius: 3, letterSpacing: "0.08em", fontWeight: 700 }}>LIVE</span>
+          </div>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.02em" }}>
+            Central Bank Monitor
+            <span style={{ color: "#94a3b8", fontWeight: 400, fontSize: 14, marginLeft: 12 }}>Jun 10 – Jul 10, 2026</span>
+          </h1>
+          <div style={{ marginTop: 10, background: "#1e293b", border: "1px solid #ef4444", borderLeft: "3px solid #ef4444", borderRadius: 6, padding: "8px 14px", fontSize: 12, color: "#fca5a5", lineHeight: 1.5 }}>
+            ⚡ {data.macro_theme}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ background: "#1e293b", borderBottom: "1px solid #334155" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", gap: 0 }}>
+          {[["calendar", "📅 Meeting Calendar"], ["rates", "📊 Rate Outlook"], ["portfolio", "💼 Portfolio Signals"]].map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              style={{
+                background: "none", border: "none", cursor: "pointer", padding: "12px 20px", fontSize: 13, fontWeight: 600,
+                color: activeTab === key ? "#38bdf8" : "#64748b",
+                borderBottom: activeTab === key ? "2px solid #38bdf8" : "2px solid transparent",
+                transition: "all 0.15s",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 24px" }}>
+
+        {/* CALENDAR TAB */}
+        {activeTab === "calendar" && (
+          <div>
+            <div style={{ background: "linear-gradient(90deg, #7c3aed22, #dc262622)", border: "1px solid #7c3aed55", borderRadius: 8, padding: "10px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 20 }}>🚨</span>
+              <div>
+                <span style={{ color: "#c4b5fd", fontWeight: 700, fontSize: 13 }}>SUPER WEEK: Jun 10–18 </span>
+                <span style={{ color: "#94a3b8", fontSize: 12 }}>— BoC · ECB · BoJ · RBA · Fed · BoE · SNB all decide within 8 days. Most consequential week since 2022.</span>
+              </div>
+            </div>
+
+            <h2 style={{ fontSize: 12, letterSpacing: "0.15em", color: "#38bdf8", textTransform: "uppercase", marginBottom: 12, fontWeight: 700 }}>G10 Central Banks</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12, marginBottom: 24 }}>
+              {g10.map((m) => {
+                const dc = decisionColor(m.decision);
+                const expanded = expandedBank === m.abbr;
+                return (
+                  <div
+                    key={m.abbr}
+                    onClick={() => setExpandedBank(expanded ? null : m.abbr)}
+                    style={{
+                      background: "#1e293b", border: `1px solid ${expanded ? "#38bdf8" : "#334155"}`,
+                      borderLeft: `3px solid ${m.color}`,
+                      borderRadius: 8, padding: "14px 16px", cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 20 }}>{m.flag}</span>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9" }}>{m.abbr}</div>
+                          <div style={{ fontSize: 11, color: "#64748b" }}>{m.date}</div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: m.color }}>{m.signal}</div>
+                        <div style={{ fontSize: 10, padding: "2px 8px", background: dc.bg, color: dc.text, border: `1px solid ${dc.border}`, borderRadius: 4, fontWeight: 700, letterSpacing: "0.05em", marginTop: 2 }}>{m.decision}</div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>Current: </span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#38bdf8" }}>{m.currentRate}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{biasIcon(m.bias)} {m.bias}</div>
+                    </div>
+                    {expanded && (
+                      <div style={{ marginTop: 12, borderTop: "1px solid #334155", paddingTop: 12 }}>
+                        <div style={{ display: "grid", gap: 8 }}>
+                          <div style={{ background: "#0f172a", borderRadius: 6, padding: "8px 10px" }}>
+                            <div style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, marginBottom: 3 }}>🔥 INFLATION</div>
+                            <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.5 }}>{m.inflationNote}</div>
+                          </div>
+                          <div style={{ background: "#0f172a", borderRadius: 6, padding: "8px 10px" }}>
+                            <div style={{ fontSize: 10, color: "#34d399", fontWeight: 700, marginBottom: 3 }}>📈 GROWTH</div>
+                            <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.5 }}>{m.growthNote}</div>
+                          </div>
+                          <div style={{ background: "#0f172a", borderRadius: 6, padding: "8px 10px" }}>
+                            <div style={{ fontSize: 10, color: "#818cf8", fontWeight: 700, marginBottom: 3 }}>🎯 RATE PATH</div>
+                            <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.5 }}>{m.rateOutlook}</div>
+                          </div>
+                          <div style={{ background: "#0f172a", borderRadius: 6, padding: "8px 10px" }}>
+                            <div style={{ fontSize: 10, color: "#f472b6", fontWeight: 700, marginBottom: 3 }}>👁 KEY WATCH</div>
+                            <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.5 }}>{m.keyWatch}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div style={{ marginTop: 8, fontSize: 10, color: "#475569", textAlign: "right" }}>
+                      {expanded ? "▲ collapse" : "▼ expand details"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <h2 style={{ fontSize: 12, letterSpacing: "0.15em", color: "#f59e0b", textTransform: "uppercase", marginBottom: 12, fontWeight: 700 }}>Major Asia Central Banks</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
+              {asia.map((m) => {
+                const dc = decisionColor(m.decision);
+                const expanded = expandedBank === m.abbr;
+                return (
+                  <div
+                    key={m.abbr}
+                    onClick={() => setExpandedBank(expanded ? null : m.abbr)}
+                    style={{
+                      background: "#1e293b", border: `1px solid ${expanded ? "#f59e0b" : "#334155"}`,
+                      borderLeft: `3px solid ${m.color}`,
+                      borderRadius: 8, padding: "14px 16px", cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 20 }}>{m.flag}</span>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9" }}>{m.abbr}</div>
+                          <div style={{ fontSize: 11, color: "#64748b" }}>{m.date}</div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: m.color }}>{m.signal}</div>
+                        <div style={{ fontSize: 10, padding: "2px 8px", background: dc.bg, color: dc.text, border: `1px solid ${dc.border}`, borderRadius: 4, fontWeight: 700, letterSpacing: "0.05em", marginTop: 2 }}>{m.decision}</div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>Current: </span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#f59e0b" }}>{m.currentRate}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{biasIcon(m.bias)} {m.bias}</div>
+                    </div>
+                    {expanded && (
+                      <div style={{ marginTop: 12, borderTop: "1px solid #334155", paddingTop: 12 }}>
+                        <div style={{ display: "grid", gap: 8 }}>
+                          <div style={{ background: "#0f172a", borderRadius: 6, padding: "8px 10px" }}>
+                            <div style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, marginBottom: 3 }}>🔥 INFLATION</div>
+                            <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.5 }}>{m.inflationNote}</div>
+                          </div>
+                          <div style={{ background: "#0f172a", borderRadius: 6, padding: "8px 10px" }}>
+                            <div style={{ fontSize: 10, color: "#34d399", fontWeight: 700, marginBottom: 3 }}>📈 GROWTH</div>
+                            <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.5 }}>{m.growthNote}</div>
+                          </div>
+                          <div style={{ background: "#0f172a", borderRadius: 6, padding: "8px 10px" }}>
+                            <div style={{ fontSize: 10, color: "#818cf8", fontWeight: 700, marginBottom: 3 }}>🎯 RATE PATH</div>
+                            <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.5 }}>{m.rateOutlook}</div>
+                          </div>
+                          <div style={{ background: "#0f172a", borderRadius: 6, padding: "8px 10px" }}>
+                            <div style={{ fontSize: 10, color: "#f472b6", fontWeight: 700, marginBottom: 3 }}>👁 KEY WATCH</div>
+                            <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.5 }}>{m.keyWatch}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div style={{ marginTop: 8, fontSize: 10, color: "#475569", textAlign: "right" }}>
+                      {expanded ? "▲ collapse" : "▼ expand details"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p style={{ fontSize: 11, color: "#475569", marginTop: 16, textAlign: "center" }}>Tap any card to expand inflation · growth · rate path · key watch details</p>
+          </div>
+        )}
+
+        {/* RATE OUTLOOK TAB */}
+        {activeTab === "rates" && (
+          <div>
+            <h2 style={{ fontSize: 12, letterSpacing: "0.15em", color: "#38bdf8", textTransform: "uppercase", marginBottom: 16, fontWeight: 700 }}>Policy Rate Snapshot & Projections</h2>
+
+            <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
+              {[["↑ Hiking", "#ef4444"], ["→ Hold", "#64748b"], ["↓ Cutting", "#22c55e"], ["→↑ Hold then Hike", "#f59e0b"]].map(([label, color]) => (
+                <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                  <span style={{ color, fontWeight: 700, fontSize: 14 }}>{label.split(" ")[0]}</span>
+                  <span style={{ color: "#94a3b8" }}>{label.split(" ").slice(1).join(" ")}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ overflowX: "auto", borderRadius: 8, border: "1px solid #334155" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: "#0f172a" }}>
+                    {["Central Bank", "Current Rate", "Jun 2026 (post-mtg)", "Dec 2026 (est.)", "Direction"].map((h) => (
+                      <th key={h} style={{ padding: "10px 14px", textAlign: "left", color: "#64748b", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", borderBottom: "1px solid #334155", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.rateTable.map((row, i) => (
+                    <tr key={row.bank} style={{ background: i % 2 === 0 ? "#1e293b" : "#0f172a", borderBottom: "1px solid #1e293b" }}>
+                      <td style={{ padding: "10px 14px", fontWeight: 600, color: "#f1f5f9", whiteSpace: "nowrap" }}>{row.bank}</td>
+                      <td style={{ padding: "10px 14px", color: "#38bdf8", fontWeight: 700 }}>{row.current}</td>
+                      <td style={{ padding: "10px 14px", color: row.jun !== row.current ? "#f59e0b" : "#94a3b8", fontWeight: row.jun !== row.current ? 700 : 400 }}>{row.jun}</td>
+                      <td style={{ padding: "10px 14px", color: "#94a3b8" }}>{row.dec}</td>
+                      <td style={{ padding: "10px 14px" }}>
+                        <span style={{
+                          fontSize: 16, fontWeight: 700,
+                          color: row.change.includes("↑") && row.change.includes("→") ? "#f59e0b" :
+                            row.change === "↑" ? "#ef4444" :
+                              row.change === "↓" || row.change.includes("↓") ? "#22c55e" : "#64748b"
+                        }}>{row.change}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <h2 style={{ fontSize: 12, letterSpacing: "0.15em", color: "#38bdf8", textTransform: "uppercase", margin: "24px 0 14px", fontWeight: 700 }}>Current Policy Rates — Visual Comparison</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                { name: "RBI 🇮🇳", rate: 5.25, max: 6 },
+                { name: "RBA 🇦🇺", rate: 4.35, max: 6 },
+                { name: "BI 🇮🇩", rate: 5.50, max: 6 },
+                { name: "Fed 🇺🇸", rate: 3.625, max: 6, label: "3.50–3.75%" },
+                { name: "BoC 🇨🇦", rate: 2.25, max: 6 },
+                { name: "BoK 🇰🇷", rate: 2.50, max: 6 },
+                { name: "ECB 🇪🇺", rate: 2.0, max: 6 },
+                { name: "BoE 🇬🇧", rate: 3.75, max: 6 },
+                { name: "PBoC 🇨🇳", rate: 3.0, max: 6, label: "3.00% LPR" },
+                { name: "BoJ 🇯🇵", rate: 0.75, max: 6 },
+                { name: "SNB 🇨🇭", rate: 0.0, max: 6 },
+              ].sort((a, b) => b.rate - a.rate).map((item) => (
+                <div key={item.name} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 80, fontSize: 12, color: "#94a3b8", textAlign: "right", flexShrink: 0 }}>{item.name}</div>
+                  <div style={{ flex: 1, background: "#0f172a", borderRadius: 4, height: 22, overflow: "hidden" }}>
+                    <div style={{
+                      width: `${(item.rate / item.max) * 100}%`,
+                      height: "100%",
+                      background: item.rate >= 4 ? "linear-gradient(90deg, #dc2626, #ef4444)" :
+                        item.rate >= 2 ? "linear-gradient(90deg, #2563eb, #38bdf8)" :
+                          "linear-gradient(90deg, #16a34a, #4ade80)",
+                      transition: "width 0.5s ease",
+                    }}>
+                    </div>
+                  </div>
+                  <div style={{ width: 60, fontSize: 12, fontWeight: 700, color: "#f1f5f9", flexShrink: 0 }}>{item.label || `${item.rate}%`}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              {[
+                { label: "HIKING", emoji: "🦅", banks: "ECB · BoJ · BI (emergency) · RBA (likely) · BoK", color: "#ef4444" },
+                { label: "ON HOLD", emoji: "⏸", banks: "Fed · BoE · BoC · SNB · RBI · PBoC", color: "#64748b" },
+                { label: "EASING BIAS", emoji: "🕊️", banks: "PBoC (delayed)", color: "#22c55e" },
+              ].map((g) => (
+                <div key={g.label} style={{ background: "#1e293b", border: `1px solid ${g.color}44`, borderTop: `3px solid ${g.color}`, borderRadius: 8, padding: "12px 14px" }}>
+                  <div style={{ fontSize: 20, marginBottom: 4 }}>{g.emoji}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: g.color, letterSpacing: "0.1em", marginBottom: 6 }}>{g.label}</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.6 }}>{g.banks}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* PORTFOLIO TAB */}
+        {activeTab === "portfolio" && (
+          <div>
+            <h2 style={{ fontSize: 12, letterSpacing: "0.15em", color: "#38bdf8", textTransform: "uppercase", marginBottom: 6, fontWeight: 700 }}>Portfolio Signals for Securities Teams</h2>
+            <p style={{ fontSize: 12, color: "#64748b", marginBottom: 20 }}>Key implications across fixed income, rates, FX and risk assets derived from CB meeting calendar.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
+              {data.portfolioImplications.map((p, i) => (
+                <div key={i} style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "16px" }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>{p.icon}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", marginBottom: 8 }}>{p.title}</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.7 }}>{p.body}</div>
+                </div>
+              ))}
+            </div>
+
+            <h2 style={{ fontSize: 12, letterSpacing: "0.15em", color: "#38bdf8", textTransform: "uppercase", margin: "24px 0 14px", fontWeight: 700 }}>Key Event Risk Calendar — Next 4 Weeks</h2>
+            <div style={{ overflowX: "auto", borderRadius: 8, border: "1px solid #334155" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: "#0f172a" }}>
+                    {["Date", "Event", "Risk Level", "Asset Class Impact"].map((h) => (
+                      <th key={h} style={{ padding: "10px 14px", textAlign: "left", color: "#64748b", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", borderBottom: "1px solid #334155" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Jun 9 ✓", "🇮🇩 BI Off-Cycle Emergency Hike +25bp → 5.50%", "🔴 HIGH", "IDR/USD, EM Asia bonds, regional contagion"],
+                    ["Jun 10", "🇺🇸 US CPI Release", "🔴 HIGH", "Treasuries, USD, all risk assets"],
+                    ["Jun 10", "🇨🇦 BoC Rate Decision", "🟡 MED", "CAD bonds, CAD/USD"],
+                    ["Jun 11", "🇪🇺 ECB Decision (exp. +25bp)", "🔴 HIGH", "Bunds, EUR, EU credit spreads"],
+                    ["Jun 16", "🇯🇵 BoJ Decision (exp. +25bp)", "🔴 HIGH", "JGBs, JPY, global carry trades"],
+                    ["Jun 16", "🇦🇺 RBA Decision", "🟡 MED", "AGB, AUD/USD"],
+                    ["Jun 17", "🇺🇸 FOMC + SEP + Dot Plot", "🔴 HIGH", "US rates curve, USD, equities"],
+                    ["Jun 17", "🇺🇸 US CPI (May data)", "🔴 HIGH", "Pre-BoE key input"],
+                    ["Jun 17–18", "🇮🇩 BI Scheduled Meeting (further hike risk)", "🔴 HIGH", "IDR, Indonesian bonds, EM Asia"],
+                    ["Jun 18", "🇬🇧 BoE MPC Decision", "🟡 MED", "Gilts, GBP rates"],
+                    ["Jun 18", "🇨🇭 SNB Decision", "🟢 LOW", "CHF, Swiss rates"],
+                    ["Jun 20", "🇨🇳 PBoC LPR Setting", "🟡 MED", "CNY, EM Asia credit"],
+                    ["Jul (TBC)", "🇰🇷 BoK Rate Decision", "🟡 MED", "Korean bonds, KRW"],
+                    ["Jul 15", "🇨🇦 BoC MPR Release", "🟡 MED", "CAD bonds, guidance update"],
+                    ["Jul 28–29", "🇺🇸 FOMC Meeting", "🔴 HIGH", "US Treasuries, global risk"],
+                    ["Jul 30", "🇬🇧 BoE MPC Decision", "🟡 MED", "Gilts, GBP"],
+                  ].map(([date, event, risk, impact], i) => (
+                    <tr key={i} style={{ background: i % 2 === 0 ? "#1e293b" : "#0f172a", borderBottom: "1px solid #1e293b" }}>
+                      <td style={{ padding: "9px 14px", color: "#64748b", whiteSpace: "nowrap", fontWeight: 600 }}>{date}</td>
+                      <td style={{ padding: "9px 14px", color: "#e2e8f0" }}>{event}</td>
+                      <td style={{ padding: "9px 14px", whiteSpace: "nowrap" }}>{risk}</td>
+                      <td style={{ padding: "9px 14px", color: "#94a3b8", fontSize: 11 }}>{impact}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ borderTop: "1px solid #1e293b", padding: "12px 24px", textAlign: "center", fontSize: 10, color: "#334155", marginTop: 20 }}>
+        Compiled Jun 10, 2026 · Sources: Central bank statements, Reuters, Bloomberg, CNBC, RBC Economics · For internal use only — not investment advice
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+  </script>
+</body>
+</html>
