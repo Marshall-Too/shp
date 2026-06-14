@@ -89,20 +89,19 @@
   <div id="status">Loading...</div>
 
   <script>
-    let allArtifacts = [];
+    const REGISTRY = [
+      { "id": "cb-monitor",              "title": "Central Bank Monitor",          "description": "G10 + Asia central bank rates, meeting calendar, and portfolio signals.",                                                                                                                                                                                           "file": "cb-monitor.html",              "category": "Monetary Policy", "date": "2026-06-14" },
+      { "id": "macro-dashboard",         "title": "Macro Dashboard",               "description": "Liquidity, inflation expectations, and labor market indicators.",                                                                                                                                                                                                   "file": "macro-dashboard.html",         "category": "Macro",          "date": "2026-06-14" },
+      { "id": "labor-sector-dashboard",  "title": "U.S. Labor Sector Dashboard",   "description": "NFP sector payrolls by industry (BLS CES), JOLTS job openings and flows by sector. Annual, YTD, and latest m/m breakdown through May 2026.",                                                                                                                   "file": "labor-sector-dashboard.html",  "category": "Labor",          "date": "2026-06-14" },
+      { "id": "us-fed-observer-jl",      "title": "US Fed Observer — JL",          "description": "Refreshed Fed monitor: IORB cycle, inflation (Dallas Trimmed Mean + Core PCE), market & model-based expectations (breakevens, Cleveland Fed EXPINF, NY Fed SCE), labor market (JOLTS, V/U, NFP, UNRATE). Data via FRED as of Jun 14 2026.",                   "file": "us-fed-observer-jl.html",      "category": "Macro",          "date": "2026-06-14" }
+    ];
+
+    let allArtifacts = REGISTRY;
     let activeCategory = 'All';
 
-    fetch('registry.json')
-      .then(r => r.json())
-      .then(data => {
-        allArtifacts = data.artifacts;
-        buildFilters();
-        renderCards(allArtifacts);
-        document.getElementById('status').textContent = '';
-      })
-      .catch(() => {
-        document.getElementById('status').textContent = 'Could not load registry.json';
-      });
+    buildFilters();
+    renderCards(allArtifacts);
+    document.getElementById('status').textContent = '';
 
     function buildFilters() {
       const categories = ['All', ...new Set(allArtifacts.map(a => a.category))];
