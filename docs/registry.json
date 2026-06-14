@@ -1,0 +1,20 @@
+{
+  "artifacts": [
+    {
+      "id": "cb-monitor",
+      "title": "Central Bank Monitor",
+      "description": "G10 + Asia central bank rates, meeting calendar, and portfolio signals.",
+      "file": "cb-monitor.html",
+      "category": "Monetary Policy",
+      "date": "2026-06-14"
+    },
+    {
+      "id": "macro-dashboard",
+      "title": "Macro Dashboard",
+      "description": "Liquidity, inflation expectations, and labor market indicators.",
+      "file": "macro-dashboard.html",
+      "category": "Macro",
+      "date": "2026-06-14"
+    }
+  ]
+}
