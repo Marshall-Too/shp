@@ -17,6 +17,14 @@
       "date": "2026-06-14"
     },
     {
+      "id": "labor-sector-dashboard",
+      "title": "U.S. Labor Sector Dashboard",
+      "description": "NFP sector payrolls by industry (BLS CES), JOLTS job openings and flows by sector. Annual, YTD, and latest m/m breakdown through May 2026.",
+      "file": "labor-sector-dashboard.html",
+      "category": "Labor",
+      "date": "2026-06-14"
+    },
+    {
       "id": "us-fed-observer-jl",
       "title": "US Fed Observer — JL",
       "description": "Refreshed Fed monitor: IORB cycle, inflation (Dallas Trimmed Mean + Core PCE), market & model-based expectations (breakevens, Cleveland Fed EXPINF, NY Fed SCE), labor market (JOLTS, V/U, NFP, UNRATE). Data via FRED as of Jun 14 2026.",
