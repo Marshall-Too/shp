@@ -23,6 +23,14 @@
       "file": "labor-sector-dashboard.html",
       "category": "Labor",
       "date": "2026-06-14"
+    },
+    {
+      "id": "nfp-ytd-sector",
+      "title": "NFP YTD Sector Analysis — 2022–2026",
+      "description": "Birth-death model credibility assessment: 2026 YTD payrolls (+603K Jan–May) by sector, revision risk scoring, ADP/JOLTS cross-checks, and bear/base/bull scenario analysis.",
+      "file": "nfp-dashboard_2026-06-14.html",
+      "category": "Labor",
+      "date": "2026-06-14"
     }
   ]
 }
