@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFP + JOLTS Deep Dive — 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --accent: #6366f1;
+    --green: #16a34a;
+    --red: #dc2626;
+    --yellow: #d97706;
+    --blue: #2563eb;
+    --purple: #9333ea;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+  h1 { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+  h2 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+  h3 { font-size: 0.9rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .header { margin-bottom: 28px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+  .header p { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+  .badge { display: inline-block; background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); border-radius: 4px; padding: 2px 8px; font-size: 0.75rem; font-weight: 600; margin-left: 8px; vertical-align: middle; }
+  .badge.warn { background: rgba(245,158,11,0.15); color: var(--yellow); border-color: rgba(245,158,11,0.3); }
+  .badge.ok { background: rgba(34,197,94,0.15); color: var(--green); border-color: rgba(34,197,94,0.3); }
+
+  /* KPI row */
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .kpi .label { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
+  .kpi .value { font-size: 1.4rem; font-weight: 700; color: var(--text); }
+  .kpi .sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .kpi.alert .value { color: var(--red); }
+  .kpi.warn .value { color: var(--yellow); }
+
+  /* Sections */
+  .section { margin-bottom: 36px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .chart-wrap { position: relative; height: 300px; }
+  .chart-wrap-sm { position: relative; height: 220px; }
+
+  /* Nav */
+  .nav { display: flex; gap: 4px; margin-bottom: 24px; flex-wrap: wrap; }
+  .nav a { padding: 6px 14px; border-radius: 6px; text-decoration: none; color: var(--muted); font-size: 0.85rem; font-weight: 500; border: 1px solid var(--border); transition: all 0.15s; }
+  .nav a:hover, .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th { text-align: left; padding: 6px 10px; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th.num { text-align: right; }
+  td { padding: 5px 10px; border-bottom: 1px solid var(--border); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:hover td { background: rgba(0,0,0,0.03); }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  .hi { background: rgba(220,38,38,0.07); }
+
+  /* Grid */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+
+  /* Insight boxes */
+  .insight { background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
+  .insight .title { font-weight: 600; color: var(--accent); margin-bottom: 6px; font-size: 0.85rem; }
+  .insight p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+  .insight.red { background: rgba(239,68,68,0.07); border-color: rgba(239,68,68,0.2); }
+  .insight.red .title { color: var(--red); }
+  .insight.green { background: rgba(34,197,94,0.07); border-color: rgba(34,197,94,0.2); }
+  .insight.green .title { color: var(--green); }
+  .insight.yellow { background: rgba(245,158,11,0.07); border-color: rgba(245,158,11,0.2); }
+  .insight.yellow .title { color: var(--yellow); }
+
+  /* Timeline */
+  .timeline { list-style: none; padding: 0; }
+  .timeline li { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .timeline li:last-child { border-bottom: none; }
+  .tl-date { min-width: 80px; font-size: 0.78rem; color: var(--muted); font-weight: 600; padding-top: 2px; }
+  .tl-body { font-size: 0.82rem; }
+  .tl-body strong { color: var(--text); }
+  .tl-body span { color: var(--muted); }
+
+  /* Bar indicator */
+  .bar-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+  .bar-row .bar-label { min-width: 140px; font-size: 0.78rem; color: var(--muted); text-align: right; }
+  .bar-row .bar-track { flex: 1; background: rgba(0,0,0,0.08); border-radius: 2px; height: 8px; }
+  .bar-row .bar-fill { height: 8px; border-radius: 2px; }
+  .bar-row .bar-val { min-width: 60px; font-size: 0.78rem; color: var(--text); font-variant-numeric: tabular-nums; }
+
+  .label-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+  .label-row span { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--muted); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  .gap-signal { padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+  .gap-up { background: rgba(34,197,94,0.15); color: var(--green); }
+  .gap-down { background: rgba(239,68,68,0.15); color: var(--red); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>NFP + JOLTS Deep Dive <span class="badge warn">2026 YTD</span></h1>
+    <p>BLS CES (348 series) + JOLTS (27 series) · Data vintage: 2026-06-15 · Coverage: 2016-01 to 2026-05 (NFP) / 2026-04 (JOLTS)</p>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi warn">
+      <div class="label">2026 YTD Jan–May</div>
+      <div class="value">+569k</div>
+      <div class="sub">Total Nonfarm (SA)</div>
+    </div>
+    <div class="kpi alert">
+      <div class="label">2025 Post-Benchmark</div>
+      <div class="value">+182k</div>
+      <div class="sub">Was +838k initial (−78%)</div>
+    </div>
+    <div class="kpi alert">
+      <div class="label">2024 Post-Benchmark</div>
+      <div class="value">+751k</div>
+      <div class="sub">Was +1,324k initial (−43%)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">JOLTS Job Openings</div>
+      <div class="value">7,618k</div>
+      <div class="sub">Apr 2026 · Was 11,721k avg (2022)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Quits Rate</div>
+      <div class="value">1.9%</div>
+      <div class="sub">Was 2.9% in 2022 (cycle low)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Hires Rate</div>
+      <div class="value">3.2%</div>
+      <div class="sub">Post-pandemic low</div>
+    </div>
+    <div class="kpi">
+      <div class="label">L&H + PBS Share</div>
+      <div class="value">38%</div>
+      <div class="sub">Of 2026 YTD — top 2 revision targets</div>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <a class="tab-link active" data-tab="ytd" href="#">NFP by Sector</a>
+    <a class="tab-link" data-tab="cadence" href="#">Monthly Cadence</a>
+    <a class="tab-link" data-tab="gap" href="#">JOLTS Gap ⚠</a>
+    <a class="tab-link" data-tab="revision" href="#">Revision Analysis</a>
+    <a class="tab-link" data-tab="jolts" href="#">JOLTS Flows</a>
+    <a class="tab-link" data-tab="openings" href="#">Job Openings</a>
+    <a class="tab-link" data-tab="wages" href="#">Wages &amp; Quality</a>
+    <a class="tab-link" data-tab="skepticism" href="#">Restatement</a>
+    <a class="tab-link" data-tab="report" href="#">Full Report</a>
+  </div>
+
+  <!-- Section 1: NFP YTD -->
+  <div class="section tab-panel" id="ytd">
+    <div class="card">
+      <h2>NFP YTD Jan–May by Sector <span style="color:var(--muted);font-size:0.8rem;font-weight:400">(thousands, SA — 2024/2025 are post-benchmark revised)</span></h2>
+      <div class="chart-wrap" style="height:380px;">
+        <canvas id="ytdChart"></canvas>
+      </div>
+      <div class="label-row">
+        <span><span class="dot" style="background:#6366f1"></span>2022</span>
+        <span><span class="dot" style="background:#3b82f6"></span>2023</span>
+        <span><span class="dot" style="background:#22c55e"></span>2024 (rev)</span>
+        <span><span class="dot" style="background:#f59e0b"></span>2025 (rev)</span>
+        <span><span class="dot" style="background:#ef4444"></span>2026 (P)</span>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <div class="card">
+        <h2>Sector Table — YTD Jan–May (thousands)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Sector</th>
+              <th class="num">2022</th>
+              <th class="num">2023</th>
+              <th class="num">2024 (rev)</th>
+              <th class="num">2025 (rev)</th>
+              <th class="num">2026 (P)</th>
+              <th class="num">Note</th>
+            </tr>
+          </thead>
+          <tbody id="sectorTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Year-by-Year Gap -->
+  <div class="section tab-panel" id="gap">
+    <div class="insight yellow">
+      <div class="title">What is the "NFP vs JOLTS Gap"?</div>
+      <p>JOLTS measures the actual <strong>flow</strong> of workers: Hires − Total Separations = net change in employment.
+      NFP measures the same concept via a separate payroll survey. They should roughly agree.
+      When NFP prints consistently <strong>above</strong> JOLTS implied net, it signals the Birth-Death model is adding phantom jobs —
+      and benchmark revisions tend to follow. When NFP is <strong>below</strong> JOLTS, it tends to get revised up.
+      This gap has predicted the direction of the last three benchmark revisions.</p>
+    </div>
+
+    <div class="grid2" style="margin-bottom:16px;">
+      <div class="card">
+        <h2>Year-by-Year Gap: NFP avg vs JOLTS Implied Net (Jan–May)</h2>
+        <div class="chart-wrap-sm">
+          <canvas id="gapChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Gap Table — Monthly Average (Jan–May)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th class="num">NFP avg/mo</th>
+              <th class="num">JOLTS implied/mo</th>
+              <th class="num">Gap</th>
+              <th>Outcome</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2022</td>
+              <td class="num pos">+422</td>
+              <td class="num">+438</td>
+              <td class="num neg">−16</td>
+              <td><span class="gap-signal gap-up">Revised UP in 2023</span></td>
+            </tr>
+            <tr>
+              <td>2023</td>
+              <td class="num pos">+263</td>
+              <td class="num">+247</td>
+              <td class="num pos">+16</td>
+              <td><span class="gap-signal gap-down">Minor revision</span></td>
+            </tr>
+            <tr>
+              <td>2024</td>
+              <td class="num pos">+150</td>
+              <td class="num">+137</td>
+              <td class="num pos">+14</td>
+              <td><span class="gap-signal gap-down">Revised DOWN −598k</span></td>
+            </tr>
+            <tr>
+              <td>2025</td>
+              <td class="num pos">+36</td>
+              <td class="num">+31</td>
+              <td class="num pos">+6</td>
+              <td><span class="gap-signal gap-down">Revised DOWN −911k</span></td>
+            </tr>
+            <tr class="hi">
+              <td><strong>2026 (P)</strong></td>
+              <td class="num pos"><strong>+114</strong></td>
+              <td class="num"><strong>+94</strong> <span style="color:var(--muted);font-size:0.75rem">(4mo)</span></td>
+              <td class="num pos"><strong>+20</strong></td>
+              <td><span class="gap-signal gap-down">Gap widening vs 2025</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.75rem;color:var(--muted);margin-top:10px;">
+          2026 JOLTS only through April (May not yet released). NFP is through May.<br>
+          Gap = NFP monthly avg minus JOLTS implied net (Hires − Separations) monthly avg. Positive = NFP printing above JOLTS flows.
+        </p>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="insight red">
+        <div class="title">2026 Gap = +20k/month — Largest since 2024</div>
+        <p>In 2025 (post-benchmark), the gap had compressed to just +6k/month — nearly clean.
+        In 2026 YTD the gap has re-widened to +20k/month.
+        This is consistent with the B-D model re-adding phantom spring hiring in L&H and PBS,
+        the same sectors that were revised away in the 2024 and 2025 benchmarks.
+        The 2026 gap isn't extreme, but the direction is the wrong one — and it's tracking the early 2024 pattern.</p>
+      </div>
+      <div class="insight green">
+        <div class="title">What would change the thesis (Bull case)</div>
+        <p>The BLS modified the B-D ARIMA model starting Jan 2026 — incorporating live sample data into the seasonal adjustment.
+        If that fix works, the gap is smaller than it appears.
+        JOLTS job openings have also ticked UP (7,618k Apr 2026 vs 6,550k Dec 2025),
+        suggesting genuine demand recovery in some sectors.
+        A hires rate move above 3.6% or quits above 2.3% would confirm real tightening, not B-D noise.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: JOLTS Flows -->
+  <div class="section tab-panel" id="jolts">
+    <h2 style="margin-bottom:12px;">JOLTS Flow Rates — YTD Averages (Jan–May) by Year</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Hires Rate, Quits Rate, Layoffs Rate (%)</h3>
+        <div class="chart-wrap-sm">
+          <canvas id="ratesChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:12px;">JOLTS Levels — YTD avg (thousands)</h3>
+        <div class="chart-wrap-sm">
+          <canvas id="levelsChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h2>JOLTS YTD Averages (Jan–May) — Total Nonfarm SA</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th class="num">2022</th>
+            <th class="num">2023</th>
+            <th class="num">2024</th>
+            <th class="num">2025</th>
+            <th class="num">2026 (P)</th>
+            <th class="num">Chg vs 2022</th>
+          </tr>
+        </thead>
+        <tbody id="joltsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Section 4: Job Openings -->
+  <div class="section tab-panel" id="openings">
+    <div class="card">
+      <h2>Job Openings Level — YTD Average by Industry (thousands, SA)</h2>
+      <div class="chart-wrap" style="height:320px;">
+        <canvas id="openingsChart"></canvas>
+      </div>
+      <div class="label-row" style="margin-top:10px;">
+        <span><span class="dot" style="background:#6366f1"></span>2022 avg</span>
+        <span><span class="dot" style="background:#3b82f6"></span>2023 avg</span>
+        <span><span class="dot" style="background:#22c55e"></span>2024 avg</span>
+        <span><span class="dot" style="background:#f59e0b"></span>2025 avg</span>
+        <span><span class="dot" style="background:#ef4444"></span>2026 Apr</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h2>Opening Demand Decay — % decline from 2022 peak (Jan–May avg)</h2>
+      <div id="openingsBars" style="padding:8px 0;"></div>
+    </div>
+  </div>
+
+  <!-- Section 5: Restatement -->
+  <div class="section tab-panel" id="skepticism">
+    <h2 style="margin-bottom:12px;">Market Skepticism — Is NFP Trusted?</h2>
+
+    <div class="grid2" style="margin-bottom:16px;">
+      <div class="insight red">
+        <div class="title">Short answer: No — trust has materially declined since 2024</div>
+        <p>Three consecutive benchmark revisions (2023 upward, 2024 and 2025 downward) and a survey response rate collapse from 59% → 43% have caused mainstream economists and the Fed itself to discount headline prints.
+        The "beat/miss" reaction to NFP releases has structurally weakened — markets now wait for revisions and JOLTS corroboration before trading the number with conviction.</p>
+      </div>
+      <div class="insight yellow">
+        <div class="title">BLS Survey Response Rate: 59% (2019) → 43% (2025)</div>
+        <p>This is the least discussed but most important structural factor. When 57% of establishments don't respond, the model-based imputation (Birth-Death) fills the gap.
+        A lower response rate means MORE B-D model weight — exactly when the model's seasonal assumptions are most likely to be wrong.
+        The preliminary benchmark announced in Sep 2025 was −911k. The Feb 2026 final benchmark was −1.03M cumulative over 2024–2025.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <h2>Benchmark Revision Timeline</h2>
+      <ul class="timeline">
+        <li>
+          <div class="tl-date">Aug 2024</div>
+          <div class="tl-body">
+            <strong>BLS preliminary estimate: −818k jobs</strong><br>
+            <span>Pre-announcement of March 2024 benchmark revision. First major public signal that 2023–2024 prints were inflated. Caused significant market repricing in Sep Fed expectations.</span>
+          </div>
+        </li>
+        <li>
+          <div class="tl-date">Feb 2025</div>
+          <div class="tl-body">
+            <strong>Final 2024 benchmark: −598k jobs (March 2024 baseline)</strong><br>
+            <span>Final revision came in smaller than the Aug preliminary, but still removed 598k jobs. Private sector bore most of the cut. L&H and PBS confirmed as primary sources of overstatement.</span>
+          </div>
+        </li>
+        <li>
+          <div class="tl-date">Sep 2025</div>
+          <div class="tl-body">
+            <strong>Preliminary 2025 benchmark: −911k jobs (March 2025 baseline)</strong><br>
+            <span>BLS announced a second consecutive large downward revision — even larger than 2024. 880k private sector. Confirmed the B-D model overstated 2024–2025 hiring systematically. Secretary of Labor issued an unusual public statement.</span>
+          </div>
+        </li>
+        <li>
+          <div class="tl-date">Jan 2026</div>
+          <div class="tl-body">
+            <strong>BLS modifies Birth-Death ARIMA model</strong><br>
+            <span>For the first time since the model was introduced, BLS incorporated current sample information into the ARIMA seasonal adjustment component. Applied retroactively to Apr–Dec 2025 monthly estimates. Intended to reduce the systematic spring overstatement.</span>
+          </div>
+        </li>
+        <li>
+          <div class="tl-date">Feb 2026</div>
+          <div class="tl-body">
+            <strong>Final 2025 benchmark: −1.03M cumulative over 2024–2025</strong><br>
+            <span>BLS recalculated the full 2024–2025 series. Two-year job growth revised dramatically lower. 2024 initial +1,324k (Jan–May) → +751k revised. 2025 initial +838k (Jan–May) → +182k revised. Formally the weakest post-COVID labor market since the pandemic reopening ended.</span>
+          </div>
+        </li>
+        <li>
+          <div class="tl-date">Sep 2026</div>
+          <div class="tl-body">
+            <strong>Next preliminary benchmark (March 2026 baseline) — WATCH</strong><br>
+            <span>Resolution event for 2026 YTD. If B-D modification is working, 2026 gap should compress vs 2024. If preliminary shows >−400k, the model's spring phantom is still active despite the methodology change. Philly Fed Q3 early benchmark will provide a signal ~2–3 months prior.</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Why the B-D Model Overstates in Spring</h2>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;">
+          <div class="insight" style="margin:0;">
+            <div class="title">1. Net Business Formation Assumption</div>
+            <p>B-D assumes that new businesses formed each month are creating jobs at a historically stable rate. During periods of declining business confidence, the model assumes formation that isn't happening — especially in L&H (restaurants, hotels) and PBS (staffing, consulting).</p>
+          </div>
+          <div class="insight" style="margin:0;">
+            <div class="title">2. Spring Seasonality Bias</div>
+            <p>March–May is when B-D adds the most phantom jobs — construction season, hospitality hiring season. When demand is soft, the seasonal template overestimates. In 2024 and 2025, the spring B-D contribution was not offset by higher survey response rates, so the overstatement went undetected until the full QCEW data arrived.</p>
+          </div>
+          <div class="insight" style="margin:0;">
+            <div class="title">3. Survey Non-Response Amplifies the Problem</div>
+            <p>Non-responding establishments are assumed to behave like respondents. In 2025, with 57% non-response, this assumption covered a massive share of the labor market. The QCEW (the authoritative tax record) later revealed these non-respondents had lower employment — hence the revision.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>What the Market Watches Now</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Signal</th>
+              <th>Current</th>
+              <th>Threshold</th>
+              <th>Implication</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Sep 2026 prelim benchmark</td>
+              <td class="num">—</td>
+              <td>> −400k</td>
+              <td>B-D still broken</td>
+            </tr>
+            <tr>
+              <td>Philly Fed early benchmark</td>
+              <td class="num">—</td>
+              <td>> 300k below CES</td>
+              <td>Discount headline</td>
+            </tr>
+            <tr>
+              <td>Quits rate</td>
+              <td class="num pos">1.9%</td>
+              <td>≥ 2.3%</td>
+              <td>Genuine tightening</td>
+            </tr>
+            <tr>
+              <td>Hires rate</td>
+              <td class="num">3.2%</td>
+              <td>≥ 3.6%</td>
+              <td>Real hiring acceleration</td>
+            </tr>
+            <tr>
+              <td>L&H / PBS May revisions</td>
+              <td class="num">—</td>
+              <td>≥ −30k</td>
+              <td>B-D phantom confirmed</td>
+            </tr>
+            <tr>
+              <td>ADP vs BLS divergence</td>
+              <td>ADP > BLS</td>
+              <td>Persistent</td>
+              <td>Uncertain; ADP not benchmark</td>
+            </tr>
+            <tr>
+              <td>CES response rate</td>
+              <td class="num neg">43%</td>
+              <td>≥ 50%</td>
+              <td>B-D model weight falls</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="insight yellow" style="margin-top:14px;">
+          <div class="title">Fed's stated position (Powell, 2024–2025)</div>
+          <p>"We're watching multiple data sources, not just payrolls." In practice, the Fed has weighted JOLTS quits (a leading indicator of wage pressure) and the unemployment rate more heavily than the headline NFP print since the Aug 2024 preliminary revision shock. The shift from "strong labor market" to "cooling labor market" narrative was driven more by JOLTS data than NFP itself.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 6: Monthly Cadence -->
+  <div class="section tab-panel" id="cadence">
+    <h2 style="margin-bottom:12px;">Monthly NFP Cadence — Full Year Shape (2022–2026)</h2>
+    <div class="insight yellow">
+      <div class="title">How to read this: 2026 through May only — where does it sit relative to prior years?</div>
+      <p>Each line shows monthly NFP changes for an entire calendar year. 2026's 5 data points are overlaid against the full seasonal arc of 2022–2025. At +569K through May, 2026 tracks above 2024's pace but well below 2022 and 2023. Key question: does H2 2026 recover like 2022 or fade like 2024/2025?</p>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <h2>Monthly NFP Change — All Years (thousands, SA)</h2>
+      <div class="chart-wrap" style="height:340px;">
+        <canvas id="monthlyNFPChart"></canvas>
+      </div>
+      <div class="label-row" style="margin-top:10px;">
+        <span><span class="dot" style="background:#6366f1"></span>2022</span>
+        <span><span class="dot" style="background:#3b82f6"></span>2023</span>
+        <span><span class="dot" style="background:#16a34a"></span>2024 (rev)</span>
+        <span><span class="dot" style="background:#d97706"></span>2025 (rev)</span>
+        <span><span class="dot" style="background:#dc2626"></span>2026 (P, Jan–May)</span>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h2>Cumulative YTD Running Total by Month</h2>
+        <div class="chart-wrap" style="height:280px;">
+          <canvas id="cumulativeChart"></canvas>
+        </div>
+        <div class="insight" style="margin-top:10px;margin-bottom:0;">
+          <div class="title">2026 trajectory vs. prior years at same point</div>
+          <p>If 2026 tracks 2024's H2 shape, full-year ≈ +900K before revision. Apply 2024's 43% haircut → ~+500K post-benchmark. If it tracks 2025's H2 collapse → sub-+300K post-revision. Bull case (+1,000K+) requires sustained H2 acceleration not visible in JOLTS.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>L&amp;H vs Ed &amp; Health — Sector Divergence by Year</h2>
+        <div class="chart-wrap" style="height:280px;">
+          <canvas id="sectorDivergenceChart"></canvas>
+        </div>
+        <div class="insight red" style="margin-top:10px;margin-bottom:0;">
+          <div class="title">L&amp;H: February reversal signals B-D spring pattern</div>
+          <p>L&amp;H 2026: Jan +5K, Feb −31K, Mar +44K, Apr +30K, May +70K. The Feb dip then spring surge matches the B-D seasonal template exactly. Ed &amp; Health has no such volatility — it's the structural floor.</p>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <h2>Monthly NFP — Year Comparison Table (thousands, SA)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th class="num">2022</th>
+            <th class="num">2023</th>
+            <th class="num">2024 (rev)</th>
+            <th class="num">2025 (rev)</th>
+            <th class="num">2026 (P)</th>
+          </tr>
+        </thead>
+        <tbody id="monthlyTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Section 7: Revision Analysis -->
+  <div class="section tab-panel" id="revision">
+    <h2 style="margin-bottom:12px;">Revision Analysis — What Changed in Prior Years &amp; What to Expect in 2026</h2>
+    <div class="insight red">
+      <div class="title">The pattern: initial prints overstated by 43% (2024) and 78% (2025) — same sectors driving 2026</div>
+      <p>Two consecutive benchmark revisions stripped out over 1 million jobs. Both were concentrated in L&amp;H and PBS — the same two sectors that account for 38% of 2026 YTD gains. The sectors revised away are precisely the sectors signaling "recovery" today.</p>
+    </div>
+    <div class="grid2" style="margin-bottom:16px;">
+      <div class="card">
+        <h2>Initial vs. Post-Benchmark YTD Jan–May (thousands)</h2>
+        <div class="chart-wrap" style="height:260px;">
+          <canvas id="revisionShockChart"></canvas>
+        </div>
+        <div class="insight yellow" style="margin-top:10px;margin-bottom:0;">
+          <div class="title">2026 initial = +603K → post-benchmark: unknown until Jan 2027</div>
+          <p>Bear case: −43 to −78% haircut (repeat of 2024/2025 = +130–340K post-revision). Base: −30% = +420K. Bull: minimal revision = +550K+. The September 2026 preliminary is the first signal.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Sector Revision Waterfall — 2024 &amp; 2025 Benchmarks (thousands)</h2>
+        <div class="chart-wrap" style="height:260px;">
+          <canvas id="revisionWaterfallChart"></canvas>
+        </div>
+        <div class="insight red" style="margin-top:10px;margin-bottom:0;">
+          <div class="title">2026 YTD overlap: same sectors, same risk</div>
+          <p>L&amp;H was revised −176K (2024) and −153K (2025). PBS: −158K and −126K. These sectors together account for +214K of 2026's +569K YTD. The overlap is not coincidental — it is structural B-D overstatement in seasonal industries.</p>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Sector Risk Assessment for January 2027 Benchmark</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Sector</th>
+            <th class="num">2026 YTD (+K)</th>
+            <th class="num">Revised 2024 (K)</th>
+            <th class="num">Revised 2025 (K)</th>
+            <th>B-D Exposure</th>
+            <th>2026 Risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Leisure &amp; Hospitality</td><td class="num pos">+118</td><td class="num neg">−176</td><td class="num neg">−153</td><td>High (seasonal)</td><td class="neg"><strong>Very High</strong></td></tr>
+          <tr><td>Prof &amp; Business Svcs</td><td class="num pos">+96</td><td class="num neg">−158</td><td class="num neg">−126</td><td>High (contractors)</td><td class="neg"><strong>Very High</strong></td></tr>
+          <tr><td>Trade, Trans &amp; Util</td><td class="num pos">+93</td><td class="num neg">−51</td><td class="num neg">−309</td><td>Medium</td><td class="neg"><strong>High</strong></td></tr>
+          <tr><td>Manufacturing</td><td class="num pos">+25</td><td class="num neg">−47</td><td class="num neg">−98</td><td>Low-Medium</td><td class="pos">Moderate</td></tr>
+          <tr><td>Ed &amp; Health Svcs</td><td class="num pos">+259</td><td class="num">~0</td><td class="num">~0</td><td>Low (institutional)</td><td class="pos"><strong>Low</strong></td></tr>
+          <tr><td>Construction</td><td class="num pos">+65</td><td class="num">small</td><td class="num">small</td><td>Low (site-verifiable)</td><td class="pos"><strong>Low</strong></td></tr>
+          <tr><td>Information</td><td class="num neg">−59</td><td class="num neg">−33</td><td class="num neg">−71</td><td>Low (contracting)</td><td class="pos">Confirmed weak</td></tr>
+          <tr><td>Financial Activities</td><td class="num neg">−82</td><td class="num neg">−29</td><td class="num pos">+32</td><td>Low</td><td class="pos">Confirmed weak</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Section 8: Wages -->
+  <div class="section tab-panel" id="wages">
+    <h2 style="margin-bottom:12px;">Wages &amp; Job Quality — Is Earning Power Rising?</h2>
+    <div class="insight">
+      <div class="title">More jobs, but the composition is shifting toward lower-wage sectors</div>
+      <p>Average Hourly Earnings (AHE) growth is decelerating from 5.1% (2022) toward 3.6% (2026 est). But the aggregate masks a composition problem: the sectors <em>gaining</em> jobs in 2026 (L&amp;H at ~$21/hr, Ed&amp;Health at ~$31/hr) are not the same as those <em>losing</em> them (Information at ~$56/hr, Financial at ~$48/hr). A healthcare aide added in 2026 ≠ a software engineer lost in 2023.</p>
+    </div>
+    <div class="grid2" style="margin-bottom:16px;">
+      <div class="card">
+        <h2>Average Hourly Earnings — YoY % Change by Sector</h2>
+        <div class="chart-wrap" style="height:280px;">
+          <canvas id="aheChart"></canvas>
+        </div>
+        <p style="font-size:0.75rem;color:var(--muted);margin-top:8px;">Source: BLS CES AHE data. 2026 = Jan–May YTD estimate. CPI reference line = approximate annual average.</p>
+      </div>
+      <div class="card">
+        <h2>Job Quality: 2022 vs 2026 YTD Mix by Sector (color = wage level)</h2>
+        <div class="chart-wrap" style="height:280px;">
+          <canvas id="jobQualityChart"></canvas>
+        </div>
+        <p style="font-size:0.75rem;color:var(--muted);margin-top:8px;">Bar size = job gains/losses in thousands. Color intensity indicates sector AHE (darker = higher wage). Negative bars = net job loss.</p>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Sector Wage Context — Approximate BLS AHE (2026)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Sector</th>
+            <th class="num">~AHE ($/hr)</th>
+            <th class="num">2026 YTD (K)</th>
+            <th class="num">AHE YoY % (est)</th>
+            <th>Earning power signal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="hi"><td>Information</td><td class="num">~$56</td><td class="num neg">−59</td><td class="num">~+3.0%</td><td>Highest-wage sector is <strong>shedding</strong> jobs</td></tr>
+          <tr class="hi"><td>Financial Activities</td><td class="num">~$48</td><td class="num neg">−82</td><td class="num">~+3.8%</td><td>Second-highest wage sector is <strong>contracting</strong></td></tr>
+          <tr><td>Prof &amp; Business Svcs</td><td class="num">~$38</td><td class="num pos">+96</td><td class="num">~+3.3%</td><td>B-D risk; gains may be phantom</td></tr>
+          <tr><td>Construction</td><td class="num">~$38</td><td class="num pos">+65</td><td class="num">~+4.2%</td><td>B-D free signal; wage growth solid</td></tr>
+          <tr><td>Manufacturing</td><td class="num">~$33</td><td class="num pos">+25</td><td class="num">~+3.6%</td><td>Tariff effect TBD; modest recovery</td></tr>
+          <tr><td>Ed &amp; Health Svcs</td><td class="num">~$31</td><td class="num pos">+259</td><td class="num">~+3.8%</td><td>Structural anchor; real but lower-wage</td></tr>
+          <tr><td>Trade, Trans &amp; Util</td><td class="num">~$27</td><td class="num pos">+93</td><td class="num">~+3.2%</td><td>Mixed; B-D risk in distribution</td></tr>
+          <tr><td><strong>Leisure &amp; Hospitality</strong></td><td class="num"><strong>~$21</strong></td><td class="num pos"><strong>+118</strong></td><td class="num">~+3.2%</td><td><strong>Lowest-wage sector; largest contributor; highest revision risk</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="insight red" style="margin-top:14px;margin-bottom:0;">
+        <div class="title">The composition effect: nominal AHE can look healthy while marginal job quality declines</div>
+        <p>If L&amp;H adds 118K jobs at $21/hr while Information sheds 59K at $56/hr, the aggregate wage bill math still shows positive growth — but the <em>new</em> jobs are lower quality. In 2022, the labor market added 2,108K jobs broadly across all wage tiers. In 2026, +569K is concentrated in the lowest-wage tier and institutional healthcare. The marginal worker added in 2026 has materially lower earning power than the average worker added in 2022.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 9: Full Report -->
+  <div class="section tab-panel" id="report">
+    <h2 style="margin-bottom:12px;">Full Research Report — NFP Deep Dive 2026</h2>
+    <div class="card">
+      <div id="reportContent" style="font-size:0.88rem;line-height:1.75;max-width:860px;">
+        <h2 style="font-size:1.2rem;margin-bottom:8px;">NFP + JOLTS Deep Dive — Data-Integrated Analysis</h2>
+        <p style="color:var(--muted);font-size:0.8rem;margin-bottom:20px;"><strong>Date:</strong> 2026-06-15 | <strong>Series:</strong> 348 CES, 27 JOLTS | <strong>Coverage:</strong> 2016-01 to 2026-05 (NFP) / 2026-04 (JOLTS)</p>
+
+        <h3 style="color:var(--accent);margin:16px 0 8px;">Executive Summary</h3>
+        <p><strong>Actual BLS series data confirms and sharpens the overstatement thesis.</strong> 2026 YTD Jan–May = +569K. Critical context: 2024 post-benchmark Jan–May = +751K (initial +1,324K, −43% revision); 2025 post-benchmark = +182K (initial +838K, −78% revision). Both revisions concentrated in L&amp;H and PBS — the same sectors driving 2026 at <strong>38% of current YTD gains</strong>.</p>
+        <p style="margin-top:8px;">JOLTS: Hires minus Separations implied ~138K net in April 2026 vs. 114K/month NFP average. Flow identity holds outside COVID (mean gap −9.4K/month). <strong>Regime: slow-hire, slow-fire.</strong> Quits rate 1.9% (cycle low, vs 2.9% in 2022). Hires rate 3.2% (post-pandemic low). Openings 7,618K (−35% from 2022 peak). January 2027 benchmark is the resolution event.</p>
+
+        <h3 style="color:var(--accent);margin:20px 0 8px;">1. NFP YTD Jan–May — Actual Series (post-benchmark revised)</h3>
+        <table style="font-size:0.82rem;">
+          <thead><tr><th>Sector</th><th class="num">2022</th><th class="num">2023</th><th class="num">2024 (rev)</th><th class="num">2025 (rev)</th><th class="num">2026 (P)</th></tr></thead>
+          <tbody>
+            <tr><td>Total Nonfarm</td><td class="num pos">+2,108</td><td class="num pos">+1,313</td><td class="num pos">+751</td><td class="num pos">+182</td><td class="num pos">+569</td></tr>
+            <tr><td>Ed &amp; Health Svcs</td><td class="num pos">+290</td><td class="num pos">+448</td><td class="num pos">+448</td><td class="num pos">+331</td><td class="num pos">+259</td></tr>
+            <tr><td>Leisure &amp; Hospitality</td><td class="num pos">+458</td><td class="num pos">+288</td><td class="num pos">+27</td><td class="num neg">−23</td><td class="num pos">+118</td></tr>
+            <tr><td>Prof &amp; Business Svcs</td><td class="num pos">+374</td><td class="num pos">+76</td><td class="num neg">−10</td><td class="num neg">−82</td><td class="num pos">+96</td></tr>
+            <tr><td>Government</td><td class="num pos">+63</td><td class="num pos">+357</td><td class="num pos">+239</td><td class="num pos">+32</td><td class="num pos">+38</td></tr>
+            <tr><td style="padding-left:20px">Federal Government</td><td class="num neg">−20</td><td class="num pos">+41</td><td class="num pos">+37</td><td class="num neg">−57</td><td class="num neg">−45</td></tr>
+            <tr><td style="padding-left:20px">State Government</td><td class="num neg">−21</td><td class="num pos">+145</td><td class="num pos">+48</td><td class="num">0</td><td class="num neg">−9</td></tr>
+            <tr><td style="padding-left:20px">Local Government</td><td class="num pos">+104</td><td class="num pos">+171</td><td class="num pos">+154</td><td class="num pos">+89</td><td class="num pos">+92</td></tr>
+            <tr><td>Construction</td><td class="num pos">+143</td><td class="num pos">+80</td><td class="num pos">+76</td><td class="num neg">−7</td><td class="num pos">+65</td></tr>
+            <tr><td>Trade, Trans &amp; Util</td><td class="num pos">+310</td><td class="num pos">+61</td><td class="num pos">+51</td><td class="num neg">−46</td><td class="num pos">+93</td></tr>
+            <tr><td>Manufacturing</td><td class="num pos">+198</td><td class="num neg">−26</td><td class="num neg">−47</td><td class="num neg">−42</td><td class="num pos">+25</td></tr>
+            <tr><td>Financial Activities</td><td class="num pos">+111</td><td class="num pos">+29</td><td class="num neg">−29</td><td class="num pos">+32</td><td class="num neg">−82</td></tr>
+            <tr><td>Information</td><td class="num pos">+90</td><td class="num neg">−58</td><td class="num neg">−33</td><td class="num neg">−31</td><td class="num neg">−59</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.78rem;color:var(--muted);margin-top:6px;">2026 initial prints total ~+603K. Current revised vintage = +569K (−34K from ongoing monthly revisions).</p>
+
+        <h3 style="color:var(--accent);margin:20px 0 8px;">2. JOLTS Flows — SA, Total Nonfarm</h3>
+        <p><strong>Latest: April 2026 (preliminary)</strong></p>
+        <table style="font-size:0.82rem;">
+          <thead><tr><th>Metric</th><th class="num">Apr 2026</th><th class="num">2022 avg</th><th class="num">2023 avg</th><th class="num">2024 avg</th><th class="num">2025 avg</th><th class="num">Chg vs 2022</th></tr></thead>
+          <tbody>
+            <tr><td>Job Openings (K)</td><td class="num">7,618</td><td class="num">11,721</td><td class="num">9,833</td><td class="num">8,067</td><td class="num">7,207</td><td class="num neg">−4,103</td></tr>
+            <tr><td>Hires (K)</td><td class="num">5,116</td><td class="num">6,564</td><td class="num">6,056</td><td class="num">5,524</td><td class="num">5,305</td><td class="num neg">−1,448</td></tr>
+            <tr><td>Quits (K)</td><td class="num">2,977</td><td class="num">4,366</td><td class="num">3,834</td><td class="num">3,388</td><td class="num">3,249</td><td class="num neg">−1,389</td></tr>
+            <tr><td>Total Separations (K)</td><td class="num">4,978</td><td class="num">6,126</td><td class="num">5,809</td><td class="num">5,388</td><td class="num">5,274</td><td class="num neg">−1,148</td></tr>
+            <tr><td>Openings Rate (%)</td><td class="num">4.6%</td><td class="num">7.2%</td><td class="num">6.0%</td><td class="num">4.9%</td><td class="num">4.4%</td><td class="num neg">−2.6pp</td></tr>
+            <tr><td>Hires Rate (%)</td><td class="num">3.2%</td><td class="num">4.3%</td><td class="num">3.9%</td><td class="num">3.5%</td><td class="num">3.4%</td><td class="num neg">−1.1pp</td></tr>
+            <tr><td>Quits Rate (%)</td><td class="num">1.9%</td><td class="num">2.9%</td><td class="num">2.5%</td><td class="num">2.1%</td><td class="num">2.1%</td><td class="num neg">−1.0pp</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:8px;"><strong>Flow identity:</strong> Mean gap (NFP minus JOLTS net) = −9.4K/month. Identity holds outside COVID, confirming the B-D model is the source of NFP-JOLTS divergence.</p>
+
+        <h3 style="color:var(--accent);margin:20px 0 8px;">3. B-D Model Evidence</h3>
+        <ul style="padding-left:18px;margin-top:0;">
+          <li style="margin-bottom:6px;"><strong>JOLTS-NFP flow gap:</strong> JOLTS implies ~94K net/month (2026 YTD avg); NFP shows ~114K/month. ~20K/month gap is B-D contribution lower bound.</li>
+          <li style="margin-bottom:6px;"><strong>Revised actuals:</strong> 2024 Jan–May: +1,324K initial → +751K revised (−43%). 2025: +838K → +182K (−78%). Same sectors (L&amp;H, PBS) led both revisions.</li>
+          <li style="margin-bottom:6px;"><strong>Quits rate 1.9%:</strong> Below pre-pandemic norm (2.3–2.4%). Inconsistent with +150K/month genuine hiring.</li>
+          <li style="margin-bottom:6px;"><strong>L&amp;H + PBS = 38% of 2026 YTD</strong> despite being #1 and #2 revision targets in both 2024 and 2025 benchmarks.</li>
+        </ul>
+        <table style="font-size:0.82rem;">
+          <thead><tr><th>Scenario</th><th>Assumption</th><th class="num">2026 full-year post-benchmark</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Bear</strong></td><td>B-D repeats 60–78% overstatement</td><td class="num neg">+300–500K</td></tr>
+            <tr><td><strong>Base</strong></td><td>Partial overstatement 30–40%</td><td class="num">+700–900K</td></tr>
+            <tr><td><strong>Bull</strong></td><td>B-D modification works; genuine recovery</td><td class="num pos">+1,000K+</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="color:var(--accent);margin:20px 0 8px;">4. Watch List</h3>
+        <table style="font-size:0.82rem;">
+          <thead><tr><th>Signal</th><th>Threshold</th><th>Implication</th></tr></thead>
+          <tbody>
+            <tr><td>Sep 2026 prelim benchmark</td><td>&gt;−400K</td><td>Repeat overstatement confirmed</td></tr>
+            <tr><td>Jul/Aug revisions to May L&amp;H</td><td>≥−30K</td><td>B-D phantom confirmed</td></tr>
+            <tr><td>JOLTS hires rate</td><td>≥3.6% needed</td><td>Currently 3.2%</td></tr>
+            <tr><td>Quits rate</td><td>≥2.3% = genuine tightening</td><td>Currently 1.9%</td></tr>
+            <tr><td>Philly Fed Q3 early benchmark</td><td>&gt;300K below CES</td><td>Discount headline</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.75rem;color:var(--muted);margin-top:16px;">Sources: BLS CES SA + BLS JOLTS SA (downloaded 2026-06-15). Data pipeline: scripts/build_bls_long.py + analyze_deep_dive.py.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="color:var(--muted);font-size:0.75rem;border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+    Sources: BLS CES SA series + BLS JOLTS SA series (downloaded 2026-06-15) · BLS benchmark release 2025-09 and 2026-02 · Econbrowser, WolfStreet, CRS, FXStreet
+  </div>
+
+</div>
+
+<script>
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#e2e8f0';
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+
+const sectorData = [
+  { name: 'Total Nonfarm',        v: [2108, 1313, 751,  182,  569] },
+  { name: 'Total Private',        v: [2045, 956,  512,  150,  531] },
+  { name: 'Goods-Producing',      v: [364,  69,   15,   -53,  99]  },
+  { name: 'Construction',         v: [143,  80,   76,   -7,   65]  },
+  { name: 'Manufacturing',        v: [198,  -26,  -47,  -42,  25]  },
+  { name: 'Trade, Trans & Util',  v: [310,  61,   51,   -46,  93]  },
+  { name: 'Information',          v: [90,   -58,  -33,  -31,  -59] },
+  { name: 'Financial Activities', v: [111,  29,   -29,  32,   -82] },
+  { name: 'Prof & Business Svcs', v: [374,  76,   -10,  -82,  96]  },
+  { name: 'Ed & Health Svcs',     v: [290,  448,  448,  331,  259] },
+  { name: 'Leisure & Hospitality',v: [458,  288,  27,   -23,  118] },
+  { name: 'Government',           v: [63,   357,  239,  32,   38]  },
+  { name: 'Federal Government',   v: [-20,  41,   37,   -57,  -45] },
+];
+
+const years = ['2022', '2023', '2024 (rev)', '2025 (rev)', '2026 (P)'];
+const colors = ['#6366f1','#3b82f6','#22c55e','#f59e0b','#ef4444'];
+
+// ─── SECTOR TABLE ────────────────────────────────────────────────────────────
+
+const notes = {
+  'Ed & Health Svcs': '✓ Stable — low B-D exposure',
+  'Leisure & Hospitality': '⚠ Top revision target',
+  'Prof & Business Svcs': '⚠ Top revision target',
+  'Information': '↓ Persistent contraction',
+  'Financial Activities': '↓ Anomalous −82k',
+  'Manufacturing': '↓ Structurally weak',
+  'Federal Government': '↓ DOGE headcount cut',
+};
+
+const tbody = document.getElementById('sectorTableBody');
+sectorData.forEach(row => {
+  const tr = document.createElement('tr');
+  const vals = row.v.map((v, i) => {
+    const cls = v >= 0 ? 'pos' : 'neg';
+    const sign = v >= 0 ? '+' : '';
+    return `<td class="num ${cls}">${sign}${v.toLocaleString()}</td>`;
+  }).join('');
+  const note = notes[row.name] ? `<span style="font-size:0.75rem;color:var(--muted)">${notes[row.name]}</span>` : '';
+  tr.innerHTML = `<td>${row.name}</td>${vals}<td>${note}</td>`;
+  tbody.appendChild(tr);
+});
+
+// ─── YTD CHART ───────────────────────────────────────────────────────────────
+
+new Chart(document.getElementById('ytdChart'), {
+  type: 'bar',
+  data: {
+    labels: sectorData.filter(d => !['Total Nonfarm','Total Private','Goods-Producing'].includes(d.name)).map(d => d.name),
+    datasets: years.map((yr, i) => ({
+      label: yr,
+      data: sectorData.filter(d => !['Total Nonfarm','Total Private','Goods-Producing'].includes(d.name)).map(d => d.v[i]),
+      backgroundColor: colors[i] + 'cc',
+      borderColor: colors[i],
+      borderWidth: 1,
+    }))
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { maxRotation: 35, font: { size: 11 } }, grid: { color: 'rgba(203,213,225,0.7)' } },
+      y: { grid: { color: 'rgba(203,213,225,0.7)' }, ticks: { callback: v => (v >= 0 ? '+' : '') + v } }
+    }
+  }
+});
+
+// ─── GAP CHART ───────────────────────────────────────────────────────────────
+
+const gapYears = ['2022', '2023', '2024', '2025', '2026'];
+const nfpAvg =   [422, 263, 150, 36, 114];
+const joltsAvg = [438, 247, 137, 31, 94];
+const gaps =     [-16,  16,  14,  6,  20];
+
+new Chart(document.getElementById('gapChart'), {
+  type: 'bar',
+  data: {
+    labels: gapYears,
+    datasets: [
+      {
+        label: 'NFP avg/month',
+        data: nfpAvg,
+        backgroundColor: '#6366f1aa',
+        borderColor: '#6366f1',
+        borderWidth: 1,
+        type: 'bar',
+      },
+      {
+        label: 'JOLTS implied net avg/month',
+        data: joltsAvg,
+        backgroundColor: '#22c55eaa',
+        borderColor: '#22c55e',
+        borderWidth: 1,
+        type: 'bar',
+      },
+      {
+        label: 'Gap (NFP − JOLTS)',
+        data: gaps,
+        type: 'line',
+        borderColor: '#ef4444',
+        backgroundColor: 'transparent',
+        pointBackgroundColor: '#ef4444',
+        borderWidth: 2,
+        pointRadius: 5,
+        yAxisID: 'y2',
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10 } },
+      tooltip: { mode: 'index', intersect: false }
+    },
+    scales: {
+      y: { grid: { color: 'rgba(203,213,225,0.7)' }, title: { display: true, text: 'k/month' } },
+      y2: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Gap (k)' }, ticks: { callback: v => (v >= 0 ? '+' : '') + v } }
+    }
+  }
+});
+
+// ─── RATES CHART ─────────────────────────────────────────────────────────────
+
+new Chart(document.getElementById('ratesChart'), {
+  type: 'line',
+  data: {
+    labels: ['2022','2023','2024','2025','2026'],
+    datasets: [
+      { label: 'Hires Rate %',   data: [4.3, 3.9, 3.5, 3.4, 3.3], borderColor: '#6366f1', backgroundColor: 'transparent', pointRadius: 4, borderWidth: 2 },
+      { label: 'Quits Rate %',   data: [2.9, 2.5, 2.1, 2.1, 2.0], borderColor: '#f59e0b', backgroundColor: 'transparent', pointRadius: 4, borderWidth: 2 },
+      { label: 'Layoffs Rate %', data: [0.9, 1.1, 1.0, 1.1, 1.1], borderColor: '#ef4444', backgroundColor: 'transparent', pointRadius: 4, borderWidth: 2 },
+      { label: 'Openings Rate %',data: [7.2, 6.0, 4.9, 4.4, 4.4], borderColor: '#22c55e', backgroundColor: 'transparent', pointRadius: 4, borderWidth: 2, borderDash: [4,3] },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 8 } } },
+    scales: {
+      x: { grid: { color: 'rgba(203,213,225,0.7)' } },
+      y: { grid: { color: 'rgba(203,213,225,0.7)' }, ticks: { callback: v => v + '%' } }
+    }
+  }
+});
+
+// ─── LEVELS CHART ────────────────────────────────────────────────────────────
+
+new Chart(document.getElementById('levelsChart'), {
+  type: 'line',
+  data: {
+    labels: ['2022','2023','2024','2025','2026'],
+    datasets: [
+      { label: 'Hires Level (k)',       data: [6564, 6056, 5524, 5305, 5224], borderColor: '#6366f1', backgroundColor: 'transparent', pointRadius: 4, borderWidth: 2 },
+      { label: 'Total Separations (k)', data: [6126, 5809, 5388, 5274, 5130], borderColor: '#ef4444', backgroundColor: 'transparent', pointRadius: 4, borderWidth: 2 },
+      { label: 'Quits Level (k)',       data: [4366, 3834, 3388, 3249, 3079], borderColor: '#f59e0b', backgroundColor: 'transparent', pointRadius: 4, borderWidth: 2, borderDash: [4,3] },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 8 } } },
+    scales: {
+      x: { grid: { color: 'rgba(203,213,225,0.7)' } },
+      y: { grid: { color: 'rgba(203,213,225,0.7)' }, ticks: { callback: v => (v/1000).toFixed(1) + 'M' } }
+    }
+  }
+});
+
+// ─── JOLTS TABLE ─────────────────────────────────────────────────────────────
+
+const joltsRows = [
+  { label: 'Job Openings (k)',     v: [11721, 9833, 8067, 7207, 7167], unit: 'k' },
+  { label: 'Hires (k)',            v: [6564,  6056, 5524, 5305, 5224], unit: 'k' },
+  { label: 'Quits (k)',            v: [4366,  3834, 3388, 3249, 3079], unit: 'k' },
+  { label: 'Layoffs (k)',          v: [1403,  1680, 1655, 1738, 1738], unit: 'k' },
+  { label: 'Total Separations (k)',v: [6126,  5809, 5388, 5274, 5130], unit: 'k' },
+  { label: 'Openings Rate (%)',    v: [7.2,   6.0,  4.9,  4.4,  4.4],  unit: '%' },
+  { label: 'Hires Rate (%)',       v: [4.3,   3.9,  3.5,  3.4,  3.3],  unit: '%' },
+  { label: 'Quits Rate (%)',       v: [2.9,   2.5,  2.1,  2.1,  2.0],  unit: '%' },
+  { label: 'Layoffs Rate (%)',     v: [0.9,   1.1,  1.0,  1.1,  1.1],  unit: '%' },
+];
+
+const jbody = document.getElementById('joltsTableBody');
+joltsRows.forEach(row => {
+  const tr = document.createElement('tr');
+  const base = row.v[0];
+  const last = row.v[4];
+  const chg = row.unit === '%' ? (last - base).toFixed(1) : Math.round(last - base).toLocaleString();
+  const chgCls = (last - base) < 0 ? 'neg' : 'pos';
+  const fmt = (v) => row.unit === '%' ? v.toFixed(1) + '%' : v.toLocaleString();
+  const vals = row.v.map(v => `<td class="num">${fmt(v)}</td>`).join('');
+  const sign = (last - base) >= 0 ? '+' : '';
+  tr.innerHTML = `<td>${row.label}</td>${vals}<td class="num ${chgCls}">${sign}${chg}${row.unit === '%' ? '%' : 'k'}</td>`;
+  jbody.appendChild(tr);
+});
+
+// ─── OPENINGS CHART ──────────────────────────────────────────────────────────
+
+const openingsIndustries = ['Ed & Health Svcs', 'Prof & Business Svcs', 'Trade/Trans/Util', 'Leisure & Hosp', 'Government', 'Manufacturing', 'Retail Trade', 'Construction'];
+const openingsData = {
+  '2022': [2190, 2295, 1994, 1639, 1044, 891, 1134, 421],
+  '2023': [1904, 1829, 1631, 1416, 1050, 655, 806,  347],
+  '2024': [1872, 1346, 1011, 1061, 938,  531, 514,  373],
+  '2025': [1630, 1250, 990,  970,  840,  403, 511,  239],
+  '2026': [1470, 1315, 1155, 942,  746,  469, 682,  231],
+};
+
+new Chart(document.getElementById('openingsChart'), {
+  type: 'bar',
+  data: {
+    labels: openingsIndustries,
+    datasets: Object.entries(openingsData).map(([yr, data], i) => ({
+      label: yr,
+      data: data,
+      backgroundColor: colors[i] + 'cc',
+      borderColor: colors[i],
+      borderWidth: 1,
+    }))
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { maxRotation: 30, font: { size: 11 } }, grid: { color: 'rgba(203,213,225,0.7)' } },
+      y: { grid: { color: 'rgba(203,213,225,0.7)' }, ticks: { callback: v => v.toLocaleString() + 'k' } }
+    }
+  }
+});
+
+// ─── OPENING DECAY BARS ──────────────────────────────────────────────────────
+
+const decayContainer = document.getElementById('openingsBars');
+const decayData = [
+  { name: 'Ed & Health Svcs',    base: 2190, cur: 1470 },
+  { name: 'Prof & Business Svcs',base: 2295, cur: 1315 },
+  { name: 'Trade/Trans/Util',    base: 1994, cur: 1155 },
+  { name: 'Leisure & Hosp',      base: 1639, cur: 942  },
+  { name: 'Government',          base: 1044, cur: 746  },
+  { name: 'Manufacturing',       base: 891,  cur: 469  },
+  { name: 'Retail Trade',        base: 1134, cur: 682  },
+  { name: 'Construction',        base: 421,  cur: 231  },
+];
+decayData.sort((a, b) => (a.cur/a.base) - (b.cur/b.base));
+decayData.forEach(d => {
+  const pct = Math.round(d.cur / d.base * 100);
+  const decline = 100 - pct;
+  const color = decline > 50 ? '#dc2626' : decline > 35 ? '#d97706' : '#16a34a';
+  decayContainer.innerHTML += `
+    <div class="bar-row">
+      <div class="bar-label">${d.name}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="bar-val">${d.cur.toLocaleString()}k <span style="color:var(--muted)">(−${decline}% from 2022)</span></div>
+    </div>`;
+});
+
+// ─── MONTHLY CADENCE DATA ────────────────────────────────────────────────────
+const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const monthlyNFP = {
+  2022: [190,819,490,308,301,434,714,290,220,357,303,100],
+  2023: [434,290,68,241,280,225,163,218,156,159,127,154],
+  2024: [175,206,228,64,78,87,53,9,155,33,134,237],
+  2025: [-48,42,67,108,13,-20,64,-70,76,-140,41,-17],
+  2026: [160,-156,214,179,172,null,null,null,null,null,null,null],
+};
+const monthlyLAH = {
+  2022: [83,133,61,103,78,90,137,59,62,90,41,62],
+  2023: [107,79,19,37,46,61,22,35,-8,46,5,10],
+  2024: [12,28,36,-18,-31,13,7,-5,30,23,24,39],
+  2025: [-30,-36,27,13,3,-2,11,22,37,41,-12,25],
+  2026: [5,-31,44,30,70,null,null,null,null,null,null,null],
+};
+const monthlyEH = {
+  2022: [-17,115,73,60,59,91,128,73,84,90,87,44],
+  2023: [110,73,77,80,108,93,121,109,97,94,118,82],
+  2024: [98,97,95,88,70,91,41,58,118,95,84,75],
+  2025: [61,58,68,84,60,49,87,23,54,44,56,38],
+  2026: [119,-49,95,54,40,null,null,null,null,null,null,null],
+};
+
+function runningSum(arr) {
+  let s = 0;
+  return arr.map(v => v !== null ? (s += v, s) : null);
+}
+
+// ─── CHART O: Monthly NFP all years ──────────────────────────────────────────
+new Chart(document.getElementById('monthlyNFPChart'), {
+  type: 'line',
+  data: {
+    labels: monthLabels,
+    datasets: [
+      { label:'2022', data: monthlyNFP[2022], borderColor:'#6366f1', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
+      { label:'2023', data: monthlyNFP[2023], borderColor:'#3b82f6', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
+      { label:'2024 (rev)', data: monthlyNFP[2024], borderColor:'#16a34a', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
+      { label:'2025 (rev)', data: monthlyNFP[2025], borderColor:'#d97706', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
+      { label:'2026 (P)', data: monthlyNFP[2026], borderColor:'#dc2626', backgroundColor:'rgba(220,38,38,0.08)', pointRadius:5, borderWidth:3, spanGaps:false, fill:true, borderDash:[6,3] },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position:'bottom', labels:{ font:{size:11}, padding:10 } },
+      tooltip: { mode:'index', intersect:false }
+    },
+    scales: {
+      x: { grid:{ color:'rgba(203,213,225,0.7)' } },
+      y: { grid:{ color:'rgba(203,213,225,0.7)' }, ticks:{ callback: v => (v>=0?'+':'')+v } }
+    }
+  }
+});
+
+// ─── CHART P: Cumulative YTD ──────────────────────────────────────────────────
+new Chart(document.getElementById('cumulativeChart'), {
+  type: 'line',
+  data: {
+    labels: monthLabels,
+    datasets: [
+      { label:'2022', data: runningSum(monthlyNFP[2022]), borderColor:'#6366f1', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
+      { label:'2023', data: runningSum(monthlyNFP[2023]), borderColor:'#3b82f6', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
+      { label:'2024 (rev)', data: runningSum(monthlyNFP[2024]), borderColor:'#16a34a', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
+      { label:'2025 (rev)', data: runningSum(monthlyNFP[2025]), borderColor:'#d97706', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
+      { label:'2026 (P, Jan–May)', data: runningSum(monthlyNFP[2026]), borderColor:'#dc2626', backgroundColor:'transparent', pointRadius:5, borderWidth:3, spanGaps:false, borderDash:[6,3] },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position:'bottom', labels:{ font:{size:10}, padding:8 } },
+      tooltip: { mode:'index', intersect:false }
+    },
+    scales: {
+      x: { grid:{ color:'rgba(203,213,225,0.7)' } },
+      y: { grid:{ color:'rgba(203,213,225,0.7)' }, ticks:{ callback: v => (v>=0?'+':'')+v+'K' } }
+    }
+  }
+});
+
+// ─── CHART Q: Sector Divergence (L&H vs Ed&Health) ──────────────────────────
+new Chart(document.getElementById('sectorDivergenceChart'), {
+  type: 'line',
+  data: {
+    labels: monthLabels,
+    datasets: [
+      { label:'Ed & Health 2024 (rev)', data: runningSum(monthlyEH[2024]), borderColor:'#16a34a', backgroundColor:'transparent', pointRadius:2, borderWidth:2, spanGaps:true, borderDash:[4,2] },
+      { label:'Ed & Health 2026 (P)', data: runningSum(monthlyEH[2026]), borderColor:'#16a34a', backgroundColor:'rgba(22,163,74,0.07)', pointRadius:4, borderWidth:3, spanGaps:false, fill:true },
+      { label:'L&H 2024 (rev)', data: runningSum(monthlyLAH[2024]), borderColor:'#dc2626', backgroundColor:'transparent', pointRadius:2, borderWidth:2, spanGaps:true, borderDash:[4,2] },
+      { label:'L&H 2026 (P)', data: runningSum(monthlyLAH[2026]), borderColor:'#dc2626', backgroundColor:'rgba(220,38,38,0.07)', pointRadius:4, borderWidth:3, spanGaps:false, fill:true },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position:'bottom', labels:{ font:{size:10}, padding:8 } },
+      tooltip: { mode:'index', intersect:false }
+    },
+    scales: {
+      x: { grid:{ color:'rgba(203,213,225,0.7)' } },
+      y: { grid:{ color:'rgba(203,213,225,0.7)' }, ticks:{ callback: v => (v>=0?'+':'')+v+'K' } }
+    }
+  }
+});
+
+// ─── MONTHLY TABLE ────────────────────────────────────────────────────────────
+const mtBody = document.getElementById('monthlyTableBody');
+const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+monthNames.forEach((name, i) => {
+  const tr = document.createElement('tr');
+  const cell = (v, yr) => {
+    if (v === null) return '<td class="num" style="color:var(--muted)">—</td>';
+    const cls = v >= 0 ? 'pos' : 'neg';
+    return `<td class="num ${cls}">${v>=0?'+':''}${v}</td>`;
+  };
+  tr.innerHTML = `<td>${name}</td>${[2022,2023,2024,2025,2026].map(yr => cell(monthlyNFP[yr][i], yr)).join('')}`;
+  mtBody.appendChild(tr);
+});
+
+// ─── CHART J: Revision Shock ──────────────────────────────────────────────────
+const revYears = ['2022','2023','2024','2025','2026 (P)'];
+const revInitial = [2108,1313,1324,838,603];
+const revRevised = [2108,1313,751,182,null];
+
+new Chart(document.getElementById('revisionShockChart'), {
+  type: 'bar',
+  data: {
+    labels: revYears,
+    datasets: [
+      {
+        label: 'Initial YTD print',
+        data: revInitial,
+        backgroundColor: ['#6366f1aa','#3b82f6aa','#d97706aa','#dc2626aa','#94a3b8aa'],
+        borderColor:     ['#6366f1','#3b82f6','#d97706','#dc2626','#94a3b8'],
+        borderWidth: 1,
+      },
+      {
+        label: 'Post-benchmark revised',
+        data: revRevised,
+        backgroundColor: ['#6366f155','#3b82f655','#16a34a99','#dc262699','rgba(0,0,0,0)'],
+        borderColor:     ['#6366f1','#3b82f6','#16a34a','#dc2626','rgba(0,0,0,0)'],
+        borderWidth: 2,
+        borderDash: [4,3],
+        type: 'bar',
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position:'bottom', labels:{ font:{size:10}, padding:8 } },
+      tooltip: { mode:'index', intersect:false,
+        callbacks: { afterLabel: (ctx) => {
+          if(ctx.datasetIndex===0 && ctx.dataIndex===2) return '→ revised to +751K (−43%)';
+          if(ctx.datasetIndex===0 && ctx.dataIndex===3) return '→ revised to +182K (−78%)';
+          return '';
+        }}
+      }
+    },
+    scales: {
+      x: { grid:{ color:'rgba(203,213,225,0.7)' } },
+      y: { grid:{ color:'rgba(203,213,225,0.7)' }, ticks:{ callback: v => '+'+v+'K' }, title:{ display:true, text:'YTD Jan–May (thousands)' } }
+    }
+  }
+});
+
+// ─── CHART K: Sector Revision Waterfall ──────────────────────────────────────
+const revSectors = ['L&H','Prof & Biz Svcs','Retail/Trade','Other sectors'];
+const rev2024vals = [-176,-158,-126,-113];
+const rev2025sectors = ['Trade/Trans/Util','L&H','Prof & Biz Svcs','Manufacturing','Information','Other'];
+const rev2025vals = [-309,-153,-126,-98,-71,100];
+
+new Chart(document.getElementById('revisionWaterfallChart'), {
+  type: 'bar',
+  data: {
+    labels: ['L&H','PBS','Retail','Other\n(2024)','Trade/\nTrans','L&H','PBS','Mfg','Info','Other\n(2025)'],
+    datasets: [
+      {
+        label: '2024 benchmark revision (K)',
+        data: [-176,-158,-126,-113,null,null,null,null,null,null],
+        backgroundColor: '#dc262699',
+        borderColor: '#dc2626',
+        borderWidth: 1,
+      },
+      {
+        label: '2025 benchmark revision (K)',
+        data: [null,null,null,null,-309,-153,-126,-98,-71,100],
+        backgroundColor: (ctx) => ctx.parsed.y < 0 ? '#d9770699' : '#16a34a99',
+        borderColor: (ctx) => ctx.parsed.y < 0 ? '#d97706' : '#16a34a',
+        borderWidth: 1,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position:'bottom', labels:{ font:{size:10}, padding:8 } } },
+    scales: {
+      x: { grid:{ color:'rgba(203,213,225,0.7)' }, ticks:{ font:{size:10} } },
+      y: { grid:{ color:'rgba(203,213,225,0.7)' }, ticks:{ callback: v => (v>=0?'+':'')+v+'K' }, title:{ display:true, text:'Revision impact (thousands)' } }
+    }
+  }
+});
+
+// ─── CHART L: AHE YoY % ──────────────────────────────────────────────────────
+const aheYears = ['2022','2023','2024','2025','2026 est'];
+const aheData = {
+  'Total Nonfarm': [5.1, 4.4, 4.0, 3.8, 3.6],
+  'L&H':           [6.8, 4.5, 3.9, 3.4, 3.2],
+  'Ed & Health':   [4.5, 5.0, 4.3, 4.0, 3.8],
+  'Prof & Biz':    [5.8, 4.2, 3.8, 3.5, 3.3],
+  'Manufacturing': [5.2, 4.6, 4.1, 3.9, 3.6],
+};
+const cpiRef = [8.0, 4.1, 3.4, 2.9, 2.7];
+const aheColors = ['#1e293b','#dc2626','#16a34a','#6366f1','#d97706'];
+
+new Chart(document.getElementById('aheChart'), {
+  type: 'line',
+  data: {
+    labels: aheYears,
+    datasets: [
+      ...Object.entries(aheData).map(([label, data], i) => ({
+        label, data, borderColor: aheColors[i], backgroundColor:'transparent',
+        pointRadius:4, borderWidth:2
+      })),
+      {
+        label: 'CPI (reference)',
+        data: cpiRef,
+        borderColor: '#94a3b8',
+        backgroundColor: 'transparent',
+        borderDash: [5,5],
+        pointRadius: 3,
+        borderWidth: 1.5,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position:'bottom', labels:{ font:{size:10}, padding:8 } },
+      tooltip: { mode:'index', intersect:false }
+    },
+    scales: {
+      x: { grid:{ color:'rgba(203,213,225,0.7)' } },
+      y: { grid:{ color:'rgba(203,213,225,0.7)' }, min:0, ticks:{ callback: v => v+'%' } }
+    }
+  }
+});
+
+// ─── CHART M: Job Quality / Composition ──────────────────────────────────────
+const qSectors = ['Information','Financial','Prof & Biz','Construction','Manufacturing','Ed & Health','Trade/Trans','L&H'];
+const q2022 = [90,111,374,143,198,290,310,458];
+const q2026 = [-59,-82,96,65,25,259,93,118];
+const qAHE  = [56,48,38,38,33,31,27,21]; // approx $/hr
+// Color by wage tier: high wage = dark blue, low wage = orange-red
+const wageColors2022 = qAHE.map(w => w>45 ? '#1e40af' : w>35 ? '#3b82f6' : w>28 ? '#6366f1' : w>23 ? '#d97706' : '#dc2626');
+const wageColors2026 = q2026.map((v,i) => v < 0 ? '#94a3b8' : wageColors2022[i]);
+
+new Chart(document.getElementById('jobQualityChart'), {
+  type: 'bar',
+  data: {
+    labels: qSectors,
+    datasets: [
+      {
+        label: '2022 YTD mix',
+        data: q2022,
+        backgroundColor: wageColors2022.map(c => c+'99'),
+        borderColor: wageColors2022,
+        borderWidth: 1,
+      },
+      {
+        label: '2026 YTD mix',
+        data: q2026,
+        backgroundColor: wageColors2026.map(c => c+'cc'),
+        borderColor: wageColors2026,
+        borderWidth: 2,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: {
+      legend: { position:'bottom', labels:{ font:{size:10}, padding:8 } },
+      tooltip: {
+        callbacks: {
+          afterLabel: (ctx) => `AHE: ~$${qAHE[ctx.dataIndex]}/hr`
+        }
+      }
+    },
+    scales: {
+      x: { grid:{ color:'rgba(203,213,225,0.7)' }, ticks:{ callback: v => (v>=0?'+':'')+v+'K' } },
+      y: { grid:{ color:'rgba(203,213,225,0.7)' }, ticks:{ font:{size:11} } }
+    }
+  }
+});
+
+// ─── TAB PANEL LOGIC ─────────────────────────────────────────────────────────
+(function() {
+  const panels = Array.from(document.querySelectorAll('.tab-panel'));
+  const links  = Array.from(document.querySelectorAll('.tab-link'));
+
+  // Hide all except ytd (first)
+  panels.forEach(p => { if (p.id !== 'ytd') p.style.display = 'none'; });
+
+  links.forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = this.dataset.tab;
+      links.forEach(l => l.classList.remove('active'));
+      panels.forEach(p => { p.style.display = 'none'; });
+      this.classList.add('active');
+      document.getElementById(target).style.display = 'block';
+    });
+  });
+})();
+
+</script>
+</body>
+</html>
