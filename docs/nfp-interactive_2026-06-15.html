@@ -505,20 +505,22 @@
   <div class="section tab-panel" id="cadence">
     <h2 style="margin-bottom:12px;">Monthly NFP Cadence — Full Year Shape (2022–2026)</h2>
     <div class="insight yellow">
-      <div class="title">How to read this: 2026 through May only — where does it sit relative to prior years?</div>
-      <p>Each line shows monthly NFP changes for an entire calendar year. 2026's 5 data points are overlaid against the full seasonal arc of 2022–2025. At +569K through May, 2026 tracks above 2024's pace but well below 2022 and 2023. Key question: does H2 2026 recover like 2022 or fade like 2024/2025?</p>
+      <div class="title">Solid = post-benchmark revised full year. Dashed = initial Jan–May print as released. 2026 has no benchmark revision yet.</div>
+      <p>The dashed lines show what each year's Jan–May NFP <em>looked like when first announced</em>. For 2024 and 2025, the dashed lines sit well above the solid revised lines — the initial prints overstated by 43% and 78% respectively. 2026's bold red dashed sits in that same elevated zone. The full-year solid arcs (2022–2025) show how each year played out after revision; 2026 has no H2 data yet. The question is whether 2026 follows the 2024/2025 pattern of spring overstatement and H2 fade, or breaks it.</p>
     </div>
     <div class="card" style="margin-bottom:16px;">
       <h2>Monthly NFP Change — All Years (thousands, SA)</h2>
       <div class="chart-wrap" style="height:340px;">
         <canvas id="monthlyNFPChart"></canvas>
       </div>
-      <div class="label-row" style="margin-top:10px;">
-        <span><span class="dot" style="background:#6366f1"></span>2022</span>
-        <span><span class="dot" style="background:#3b82f6"></span>2023</span>
-        <span><span class="dot" style="background:#16a34a"></span>2024 (rev)</span>
-        <span><span class="dot" style="background:#d97706"></span>2025 (rev)</span>
-        <span><span class="dot" style="background:#dc2626"></span>2026 (P, Jan–May)</span>
+      <div class="label-row" style="margin-top:10px; flex-wrap:wrap; row-gap:6px;">
+        <span><span class="dot" style="background:#6366f1"></span>2022 (rev, full yr)</span>
+        <span><span class="dot" style="background:#3b82f6"></span>2023 (rev, full yr)</span>
+        <span><span class="dot" style="background:#16a34a"></span>2024 (rev, full yr)</span>
+        <span><span class="dot" style="background:#d97706"></span>2025 (rev, full yr)</span>
+        <span style="opacity:0.6"><span class="dot" style="background:#16a34a;outline:1px dashed #16a34a;outline-offset:1px"></span>2024 initial Jan–May</span>
+        <span style="opacity:0.6"><span class="dot" style="background:#d97706;outline:1px dashed #d97706;outline-offset:1px"></span>2025 initial Jan–May</span>
+        <span><span class="dot" style="background:#dc2626"></span>2026 initial Jan–May (P)</span>
       </div>
     </div>
     <div class="grid2">
@@ -1026,6 +1028,11 @@ const monthlyNFP = {
   2025: [-48,42,67,108,13,-20,64,-70,76,-140,41,-17],
   2026: [160,-156,214,179,172,null,null,null,null,null,null,null],
 };
+// Initial (pre-benchmark) Jan–May prints for restated years
+const monthlyNFP_initial = {
+  2024: [353,275,303,175,218,null,null,null,null,null,null,null],
+  2025: [143,151,228,177,139,null,null,null,null,null,null,null],
+};
 const monthlyLAH = {
   2022: [83,133,61,103,78,90,137,59,62,90,41,62],
   2023: [107,79,19,37,46,61,22,35,-8,46,5,10],
@@ -1052,18 +1059,34 @@ new Chart(document.getElementById('monthlyNFPChart'), {
   data: {
     labels: monthLabels,
     datasets: [
-      { label:'2022', data: monthlyNFP[2022], borderColor:'#6366f1', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
-      { label:'2023', data: monthlyNFP[2023], borderColor:'#3b82f6', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
-      { label:'2024 (rev)', data: monthlyNFP[2024], borderColor:'#16a34a', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
-      { label:'2025 (rev)', data: monthlyNFP[2025], borderColor:'#d97706', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
-      { label:'2026 (P)', data: monthlyNFP[2026], borderColor:'#dc2626', backgroundColor:'rgba(220,38,38,0.08)', pointRadius:5, borderWidth:3, spanGaps:false, fill:true, borderDash:[6,3] },
+      // Full-year revised lines (solid)
+      { label:'2022 (rev, full yr)', data: monthlyNFP[2022], borderColor:'#6366f1', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
+      { label:'2023 (rev, full yr)', data: monthlyNFP[2023], borderColor:'#3b82f6', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
+      { label:'2024 (rev, full yr)', data: monthlyNFP[2024], borderColor:'#16a34a', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
+      { label:'2025 (rev, full yr)', data: monthlyNFP[2025], borderColor:'#d97706', backgroundColor:'transparent', pointRadius:3, borderWidth:2, spanGaps:true },
+      // Initial Jan–May prints (dashed, lighter) — what was announced before benchmark revision
+      { label:'2024 initial Jan–May', data: monthlyNFP_initial[2024], borderColor:'#16a34a', backgroundColor:'transparent', pointRadius:5, pointStyle:'triangle', borderWidth:2, borderDash:[5,4], spanGaps:false, borderCapStyle:'round', borderJoinStyle:'round', segment:{ borderColor: ctx => '#16a34a88' }, opacity:0.6 },
+      { label:'2025 initial Jan–May', data: monthlyNFP_initial[2025], borderColor:'#d97706', backgroundColor:'transparent', pointRadius:5, pointStyle:'triangle', borderWidth:2, borderDash:[5,4], spanGaps:false, borderCapStyle:'round', borderJoinStyle:'round', segment:{ borderColor: ctx => '#d9770688' }, opacity:0.6 },
+      // 2026 current initial (no benchmark revision yet)
+      { label:'2026 initial Jan–May (P)', data: monthlyNFP[2026], borderColor:'#dc2626', backgroundColor:'rgba(220,38,38,0.06)', pointRadius:6, borderWidth:3, spanGaps:false, fill:true, borderDash:[6,3] },
     ]
   },
   options: {
     responsive: true, maintainAspectRatio: false,
     plugins: {
-      legend: { position:'bottom', labels:{ font:{size:11}, padding:10 } },
-      tooltip: { mode:'index', intersect:false }
+      legend: { display: false },
+      tooltip: {
+        mode:'index', intersect:false,
+        callbacks: {
+          afterLabel: (ctx) => {
+            if (ctx.dataset.label === '2024 (rev, full yr)' && ctx.dataIndex < 5)
+              return `  ← initial was +${monthlyNFP_initial[2024][ctx.dataIndex]}K`;
+            if (ctx.dataset.label === '2025 (rev, full yr)' && ctx.dataIndex < 5)
+              return `  ← initial was +${monthlyNFP_initial[2025][ctx.dataIndex]}K`;
+            return null;
+          }
+        }
+      }
     },
     scales: {
       x: { grid:{ color:'rgba(203,213,225,0.7)' } },

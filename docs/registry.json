@@ -27,7 +27,7 @@
     {
       "id": "nfp-ytd-sector",
       "title": "NFP Deep Dive — May 2026 (Enhanced)",
-      "description": "White-theme interactive dashboard: monthly cadence 2022–2026, revision shock analysis (2024 −43%, 2025 −78%), wages & job quality composition, JOLTS flows, sector waterfall, B-D overstatement framework. 9-tab panel. Real BLS CES + JOLTS data (348+27 series).",
+      "description": "White-theme interactive dashboard: monthly cadence 2022–2026 with before/after restatement overlay (initial Jan–May prints vs post-benchmark revised), revision shock analysis (2024 −43%, 2025 −78%), wages & job quality composition, JOLTS flows, sector waterfall, B-D overstatement framework. 9-tab panel. Real BLS CES + JOLTS data (348+27 series).",
       "file": "nfp-interactive_2026-06-15.html",
       "category": "Labor",
       "date": "2026-06-15"
