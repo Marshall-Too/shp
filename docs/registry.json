@@ -26,11 +26,11 @@
     },
     {
       "id": "nfp-ytd-sector",
-      "title": "NFP YTD Sector Analysis — 2022–2026",
-      "description": "Birth-death model credibility assessment: 2026 YTD payrolls (+603K Jan–May) by sector, revision risk scoring, ADP/JOLTS cross-checks, and bear/base/bull scenario analysis.",
-      "file": "nfp-dashboard_2026-06-14.html",
+      "title": "NFP Deep Dive — May 2026 (Enhanced)",
+      "description": "White-theme interactive dashboard: monthly cadence 2022–2026, revision shock analysis (2024 −43%, 2025 −78%), wages & job quality composition, JOLTS flows, sector waterfall, B-D overstatement framework. 9-tab panel. Real BLS CES + JOLTS data (348+27 series).",
+      "file": "nfp-interactive_2026-06-15.html",
       "category": "Labor",
-      "date": "2026-06-14"
+      "date": "2026-06-15"
     }
   ]
 }
