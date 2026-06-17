@@ -258,6 +258,7 @@ fetch(DATA_URL)
     renderReleases(d.releases);
 
     const ml = d.labels.monthly_61;
+    const dl = [...d.labels.monthly_61, ...d.labels.jun_daily];
     const jl = d.labels.jolts_60;
     const nl = d.labels.nfp_29;
     const target = Array(ml.length).fill(2.0);
@@ -265,7 +266,7 @@ fetch(DATA_URL)
     // C1 — IORB
     new Chart(document.getElementById('c1'), {
       type: 'line',
-      data: { labels: ml, datasets: [{ label: 'IORB (%)', ...ls('#185FA5','rgba(24,95,165,0.08)'), data: d.liquidity.iorb, stepped: 'before' }] },
+      data: { labels: dl, datasets: [{ label: 'IORB (%)', ...ls('#185FA5','rgba(24,95,165,0.08)'), data: d.liquidity.iorb, stepped: 'before' }] },
       options: baseOpt()
     });
 
@@ -300,7 +301,7 @@ fetch(DATA_URL)
     // C4 — Breakevens
     new Chart(document.getElementById('c4'), {
       type: 'line',
-      data: { labels: ml, datasets: [
+      data: { labels: dl, datasets: [
         { label: '5Y breakeven', ...ls('#BA7517'),          data: d.expectations.be_5y },
         { label: '5Y5Y fwd',     ...ls('#EF9F27',null,[4,3]),data: d.expectations.be_5y5y }
       ]},
