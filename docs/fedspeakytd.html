@@ -64,27 +64,52 @@
     border-radius: 8px; padding: 10px 12px; cursor: pointer; margin-bottom: 7px;
   }
   .card.open { background: #fafafa; }
+  .card.unconfirmed { border-style: dashed; }
   .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
   .card-date-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .card-date { font-size: 11px; font-weight: 800; color: #111827; }
   .card-loc { font-size: 9px; color: #9ca3af; }
   .card-title { margin: 3px 0 0; font-size: 12px; font-weight: 700; color: #374151; }
   .card-event { margin: 1px 0 0; font-size: 10px; color: #9ca3af; }
+  .new-flag {
+    font-size: 8px; font-weight: 800; letter-spacing: 0.06em;
+    color: #047857; background: #d1fae5; border: 1px solid #6ee7b7;
+    border-radius: 4px; padding: 1px 5px; margin-left: 4px; vertical-align: 1px;
+  }
   .score-chip { flex-shrink: 0; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 3px 8px; text-align: center; min-width: 34px; }
   .score-chip-val { margin: 0; font-size: 15px; font-weight: 800; line-height: 1; }
   .score-chip-unit { margin: 0; font-size: 7px; color: #9ca3af; }
   .card-summary { margin: 7px 0 0; font-size: 11.5px; color: #4b5563; line-height: 1.55; }
+  .partial-note { margin: 4px 0 0; font-size: 9.5px; color: #b45309; font-style: italic; }
 
   .card-details { margin-top: 9px; display: none; }
   .card.open .card-details { display: block; }
 
-  .quote-box { background: #1e293b; border-radius: 7px; padding: 9px 12px; }
-  .quote-label { margin: 0 0 5px; font-size: 8px; font-weight: 700; letter-spacing: 0.1em; color: #64748b; }
-  .quote-text { margin: 0 0 6px; font-size: 11.5px; color: #f1f5f9; line-height: 1.65; font-style: italic; }
-  .quote-link { font-size: 9.5px; color: #60a5fa; font-weight: 700; }
+  /* Verbatim quote box — light theme, accent-colored left border */
+  .quote-box {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 7px;
+    padding: 10px 14px;
+  }
+  .quote-label { margin: 0 0 6px; font-size: 8px; font-weight: 700; letter-spacing: 0.1em; color: #9ca3af; }
+  .quote-text { margin: 0 0 7px; font-size: 12px; color: #1f2937; line-height: 1.68; font-style: italic; }
+  .quote-source-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .quote-source { font-size: 10px; color: #6b7280; }
+  .quote-link { font-size: 9.5px; font-weight: 700; }
+  .corroborated {
+    display: inline-block; margin-top: 6px; font-size: 9px; color: #047857;
+    background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 4px; padding: 2px 6px;
+  }
+
   .no-quote-box { background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 7px; padding: 7px 10px; }
   .no-quote-text { margin: 0; font-size: 10px; color: #9ca3af; font-style: italic; }
   .ref-link { font-size: 9.5px; color: #2563eb; font-weight: 700; }
+
+  .unconfirmed-box {
+    background: #fffbeb; border: 1px dashed #fde68a; border-radius: 7px; padding: 9px 12px;
+  }
+  .unconfirmed-text { margin: 0; font-size: 10.5px; color: #92400e; line-height: 1.55; }
 
   .footer-note { text-align: center; padding: 0 16px 24px; font-size: 9px; color: #d1d5db; letter-spacing: 0.04em; }
 </style>
@@ -100,6 +125,18 @@
 // (Boston) rotated OFF — non-voting in 2026, but still FOMC participants:
 // they attend, discuss, submit dot-plot projections, and their public
 // speeches still carry signal for the rest of the rotation cycle.
+//
+// Revision log (this version):
+// - Hammack May 7 & May 14: flagged unconfirmed (no policy transcript found)
+// - Hammack Jun 2: quote upgraded, now sourced to Reuters (independently
+//   corroborated by Bloomberg, same wording)
+// - Schmid Feb 11: quote upgraded to "restrictive policy stance" line,
+//   re-sourced directly to the KC Fed PDF
+// - Schmid Mar 31: quote upgraded to "can't be complacent...follow through
+//   with policy actions" line, re-sourced directly to the KC Fed PDF
+// - Schmid May 29: flagged partial (only ~1/3 of speech is policy content)
+// - Schmid Jun 4: NEW entry added (fireside chat, Bank of KC Economic Forum)
+// - Quote box redesigned: light background, no more dark navy
 // ───────────────────────────────────────────────────────────────────────
 
 const SPEAKERS = {
@@ -119,7 +156,9 @@ const SPEAKERS = {
         score: 6,
         summary: "Early-year patient hawk. Prefers to 'err on the side of patience' rather than fine-tune the rate. Sees policy as roughly 'barely restrictive.'",
         quote: "Rather than trying to fine tune the funds rate, I'd prefer to err on the side of patience as we assess the impact of recent rate reductions and monitor how the economy performs. Based on my forecast, we could be on hold for quite some time.",
+        quoteSource: "Cleveland Fed press release, Feb 10, 2026",
         quoteUrl: "https://www.clevelandfed.org/collections/press-releases/2026/pr-20260210-president-hammack-speech-to-ohio-bankers-league",
+        corroborated: null,
       },
       {
         date: "Mar 6, 2026",
@@ -129,7 +168,9 @@ const SPEAKERS = {
         score: 6,
         summary: "Policy 'in a good position' at neutral. Explicitly frames risk as two-sided — first signal she isn't pre-committing to a direction, setting up the April pivot.",
         quote: "The fed funds rate is around neutral, which allows us to see how things are going to play out. Under my base case, I think policy should be on hold for quite some time... But it's easy to envision other scenarios, as well, so I see two-sided risks to rates.",
+        quoteSource: "Cleveland Fed speech text, Mar 6, 2026",
         quoteUrl: "https://www.clevelandfed.org/collections/speeches/2026/sp-20260306-on-the-safe-haven-status-of-the-dollar",
+        corroborated: null,
       },
       {
         date: "Apr 29, 2026",
@@ -139,7 +180,9 @@ const SPEAKERS = {
         score: 8,
         summary: "Hawkish break. Dissented against retaining the 'easing bias' in the post-meeting statement alongside Kashkari and Logan. First formal departure from majority.",
         quote: null,
+        quoteSource: null,
         quoteUrl: "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260429a.htm",
+        corroborated: null,
       },
       {
         date: "May 1, 2026",
@@ -149,27 +192,29 @@ const SPEAKERS = {
         score: 8,
         summary: "Formal writeup of the dissent. Broad-based inflation pressure plus oil prices means the easing bias no longer fits the outlook.",
         quote: "Inflation pressures continue to be broad based, and rising oil prices present an additional source of inflationary pressure... I see this clear easing bias as no longer appropriate given the outlook.",
+        quoteSource: "Cleveland Fed Statement, May 1, 2026",
         quoteUrl: "https://www.clevelandfed.org/collections/speeches/2026/sp-20260501-statement-regarding-april-fomc-meeting-vote",
+        corroborated: null,
       },
       {
         date: "May 7, 2026",
         event: "Ohio CEO Summit Fireside Chat",
         location: "Covelli Center, Columbus, OH",
-        title: "Fireside chat",
-        score: 8,
-        summary: "Public appearance reinforcing the May 1 dissent rationale in conversational format. No new substantive text published.",
-        quote: null,
-        quoteUrl: null,
+        title: "Fireside chat (moderated by Mark Hatcher, BakerHostetler)",
+        score: null,
+        unconfirmed: true,
+        summary: "Confirmed to have occurred (Cleveland Fed's own calendar lists it). This is a business-leadership conference — sessions are about Ohio CEOs' growth strategies, not Fed policy.",
+        unconfirmedNote: "No transcript or media coverage found discussing inflation, rates, or the mandate at this specific appearance. Not counted toward the hawk-score trajectory.",
       },
       {
         date: "May 14, 2026",
-        event: "Opening remarks (event)",
+        event: "\"Opening remarks\" (event unspecified)",
         location: "—",
         title: "Opening remarks",
-        score: 8,
-        summary: "Brief opening remarks; no major new policy content beyond the post-dissent stance.",
-        quote: null,
-        quoteUrl: null,
+        score: null,
+        unconfirmed: true,
+        summary: "Listed only as \"opening remarks\" on Cleveland Fed's own calendar, with no topic given.",
+        unconfirmedNote: "No independent coverage found. \"Opening remarks\" typically means brief introductory comments at someone else's event, not a policy speech. Not counted toward the hawk-score trajectory.",
       },
       {
         date: "Jun 2, 2026",
@@ -177,9 +222,11 @@ const SPEAKERS = {
         location: "Cleveland, OH",
         title: "It Takes Two to Make an Economy Go Right",
         score: 9,
-        summary: "Most hawkish text of the year. For the first time states explicitly that policy 'may not be sufficiently restrictive' — a materially stronger claim than 'patient hold.' Direct warning on inflation-expectations risk, two weeks before the June FOMC.",
-        quote: "Based on the data, I'm more concerned about the growing risks of persistently elevated inflation than the risks to full employment, and that monetary policy may not be sufficiently restrictive to bring inflation down to 2%. If we wait for definitive evidence that high inflation has become embedded in the economy, it may require larger policy adjustments, at greater cost.",
-        quoteUrl: "https://www.clevelandfed.org/collections/press-releases/pr-20260602-cleveland-fed-president-hammack-speech",
+        summary: "Most hawkish text of the year. States explicitly that policy 'may not be sufficiently restrictive' — a materially stronger claim than 'patient hold.' Also flagged that even a swift end to the Iran war would leave supply chains and energy markets roiled for months.",
+        quote: "Based on the data, I'm more concerned about the growing risks of persistently elevated inflation than the risks to full employment and also that monetary policy may not be sufficiently restrictive to bring inflation down to 2%. If we wait for definitive evidence that high inflation has become embedded in the economy, it may require larger policy adjustments, at greater cost.",
+        quoteSource: "Reuters, Jun 2, 2026",
+        quoteUrl: "https://wtvbam.com/2026/06/02/feds-hammack-says-rates-may-need-to-rise-if-rising-inflation-does-not-abate/",
+        corroborated: "Independently confirmed verbatim by Bloomberg (\"Hammack Says Fed May Need to Act Soon Against High Inflation\") and Cleveland Fed's own release",
       },
       {
         date: "Jun 17, 2026",
@@ -187,9 +234,11 @@ const SPEAKERS = {
         location: "Washington, DC",
         title: "Warsh's first meeting; easing bias removed, dot plot turns hawkish",
         score: 9,
-        summary: "Vote was unanimous because the committee granted the April dissenters' core demand — the easing-bias language was stripped from the statement entirely. Median 2026 dot moved to 3.8% (implying a hike) from 3.4% in March. Hammack's June 2 framing is consistent with the committee's broader hawkish dot-plot shift.",
+        summary: "Vote was unanimous because the committee granted the April dissenters' core demand — the easing-bias language was stripped from the statement entirely. Median 2026 dot moved to 3.8% (implying a hike) from 3.4% in March. No direct Hammack quote found tied to this specific meeting — categorized by media as among the most hawkish voters, but not directly quoted.",
         quote: null,
+        quoteSource: null,
         quoteUrl: "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260617a.htm",
+        corroborated: null,
       },
     ],
   },
@@ -207,9 +256,11 @@ const SPEAKERS = {
         location: "Kansas City, MO",
         title: "The Economic Outlook and Monetary Policy",
         score: 8,
-        summary: "Opens the year already hawkish — references his Oct & Dec 2025 dissents against cuts. Inflation 'too hot,' policy barely restrictive. Rotated off voting seat for 2026 but unchanged in substance.",
+        summary: "Opens the year already hawkish — references his Oct & Dec 2025 dissents against cuts. Inflation 'too hot,' policy barely restrictive.",
         quote: "I see little reason at this point to further lower the policy rate... While I am hopeful that price pressures will ease, I am reluctant to step back until I see more convincing signs that overall inflation is headed in the right direction.",
+        quoteSource: "Kansas City Fed speech text, Jan 15, 2026",
         quoteUrl: "https://www.kansascityfed.org/speeches/the-economic-outlook-and-monetary-policy-2026/",
+        corroborated: "Independently confirmed by Investing.com / Bloomberg wire coverage same day",
       },
       {
         date: "Feb 11, 2026",
@@ -217,9 +268,11 @@ const SPEAKERS = {
         location: "Albuquerque, NM",
         title: "Monetary Policy and the Economic Outlook",
         score: 8,
-        summary: "Frames inflation persistence as a policy choice, not an inherent property of the shock — a more theoretically loaded hawkish argument than most peers make.",
-        quote: "With growth showing momentum and inflation still hot, I'm not seeing many indications of economic restraint... It is the actions of monetary policy that determine whether a price shock is transitory or not.",
-        quoteUrl: "https://www.kansascityfed.org/speeches/monetary-policy-and-the-economic-outlook-albuquerque/",
+        summary: "Explicit restrictive-policy argument: with demand outpacing supply, the Fed should actively lean against growth, not just hold rates.",
+        quote: "With demand outpacing supply and inflation running closer to 3% than 2%, I see it as appropriate to maintain a somewhat restrictive policy stance. Restrictive monetary policy can help slow demand growth, giving supply time to catch up and alleviate inflationary pressures.",
+        quoteSource: "Kansas City Fed PDF, Feb 11, 2026 (verified directly)",
+        quoteUrl: "https://www.kansascityfed.org/documents/14529/2026-Schmid-ABQNM-02-11.pdf",
+        corroborated: null,
       },
       {
         date: "Mar 3, 2026",
@@ -229,7 +282,9 @@ const SPEAKERS = {
         score: 8,
         summary: "Reiterates persistent above-target inflation; no softening despite two months of data.",
         quote: "Inflation has been above the Fed's objective for nearly five years now. I don't think we have room to be complacent.",
+        quoteSource: "Bloomberg, Mar 3, 2026",
         quoteUrl: "https://www.bloomberg.com/news/articles/2026-03-03/schmid-says-fed-can-t-be-complacent-about-still-hot-inflation",
+        corroborated: null,
       },
       {
         date: "Mar 31, 2026",
@@ -237,19 +292,23 @@ const SPEAKERS = {
         location: "Oklahoma City, OK",
         title: "The Economic Outlook and Monetary Policy",
         score: 8,
-        summary: "Acknowledges tailwinds (productivity, low unemployment) but flags a structural risk: inflation getting 'stuck' near 3% rather than 2%. Treats anchored expectations as fragile, earned credibility — not a fact to take for granted.",
-        quote: "I believe there is a real risk that inflation will get stuck closer to 3 percent than 2 percent in the long run. I take little comfort from the fact that most measures of medium- and long-term inflation expectations have not moved higher of late.",
+        summary: "Acknowledges tailwinds (productivity, low unemployment) but flags a structural risk: inflation getting 'stuck' near 3% rather than 2%. Explicit warning against complacency, paired with a call to follow through on policy action.",
+        quote: "I don't think we can be complacent about the risks to inflation expectations... It is now our job to follow through with policy actions that validate those expectations.",
+        quoteSource: "Kansas City Fed PDF, Mar 31, 2026 (verified directly)",
         quoteUrl: "https://www.kansascityfed.org/documents/15518/2026-Schmid-OKCRotary-03-31.pdf",
+        corroborated: null,
       },
       {
         date: "May 14, 2026",
-        event: "Kansas City event",
+        event: "Future of Banking Conference, Kansas City Fed",
         location: "Kansas City, MO",
         title: "Remarks on inflation risk",
         score: 9,
-        summary: "Tone sharpens after a hot 6% PPI print (hottest in ~4 years). Explicitly names inflation as the dominant risk to the economy, ahead of growth or labour concerns.",
-        quote: "Continued inflation is the most pressing risk to the economy — clear that it is still too high.",
+        summary: "Tone sharpens after a hot 6% PPI print (hottest in ~4 years). Names inflation as the dominant risk to the economy. Notably declined to comment on the rate outlook itself at this appearance (per Reuters).",
+        quote: "I believe that persistent inflation is the most pressing risk to the economy right now. While inflation has fallen significantly from its peak, it is clear from my conversations with business leaders in the 10th District that inflation remains excessively high.",
+        quoteSource: "Reuters / FXStreet, May 14, 2026",
         quoteUrl: "https://www.fxstreet.com/news/feds-schmid-continued-inflation-is-the-most-pressing-risk-to-the-economy-202605141432",
+        corroborated: "Independently confirmed by PANews and Investing.com (Reuters wire), same wording",
       },
       {
         date: "May 29, 2026",
@@ -257,19 +316,25 @@ const SPEAKERS = {
         location: "Reykjavik, Iceland",
         title: "The Local and the Global in Monetary Policy",
         score: 9,
-        summary: "Most explicit hawkish signal of the year — frames continued vigilance as a communications imperative for the whole Committee, not just his own vote, just before Warsh's first meeting.",
+        partial: true,
+        summary: "Speech is structured around three global topics — oil, AI, and demographics — through a regionalism lens. Inflation/policy content sits only within the 'oil' section.",
         quote: "With inflation running above the Fed's 2% definition of price stability for over five years, now is not the time to let down our guard. We must continue to signal our commitment to price stability and our willingness to take the actions necessary to achieve our mandate.",
+        quoteSource: "Bloomberg, May 29, 2026",
         quoteUrl: "https://www.bloomberg.com/news/articles/2026-05-29/fed-s-schmid-says-officials-must-signal-commitment-to-inflation",
+        corroborated: null,
       },
       {
-        date: "Jun 17, 2026",
-        event: "FOMC Meeting — non-voting participant",
-        location: "Washington, DC",
-        title: "Submits SEP dot; Warsh's first meeting",
+        date: "Jun 4, 2026",
+        event: "Fireside chat, Bank of Kansas City Economic Forum",
+        location: "Kansas City, MO",
+        title: "Inflation is the biggest risk facing the economy",
         score: 9,
-        summary: "Non-voting in 2026 but still attends, discusses, and submits an anonymous dot-plot projection. Committee-wide dot median moved to imply a 2026 hike (3.8%, from 3.4% in March) — directionally consistent with everything Schmid has said since January.",
-        quote: null,
-        quoteUrl: "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20260617.pdf",
+        isNew: true,
+        summary: "Most explicit hawkish framing yet — for the first time poses an actual rate hike as a live question, not just 'stay patient.' Found independently after the person flagged having seen this appearance — not previously in this tracker.",
+        quote: "The biggest risk facing the economy right now is inflation... The issue is whether the Fed needs to raise rates to 'tamp this thing down' and meet the inflation target. The 2% target is easy to communicate, and the Fed should not blur the message around that.",
+        quoteSource: "FXStreet, Jun 4, 2026",
+        quoteUrl: "https://www.fxstreet.com/news/feds-schmid-inflation-is-the-biggest-risk-facing-the-economy-202606041832",
+        corroborated: null,
       },
     ],
   },
@@ -278,6 +343,7 @@ const SPEAKERS = {
 // ─── HELPERS ─────────────────────────────────────────────────────────────
 
 function scoreColor(score) {
+  if (score == null) return "#9ca3af";
   if (score <= 3) return "#047857";
   if (score <= 5) return "#6b7280";
   if (score <= 7) return "#c2410c";
@@ -293,44 +359,72 @@ function escapeHtml(str) {
 }
 
 function renderTrajectoryBars(timeline) {
-  return timeline.map(t => {
-    const h = 10 + ((t.score - 1) / 9) * 22;
-    const color = scoreColor(t.score);
-    return `<div class="traj-bar" style="height:${h}px;background:${color}" title="${escapeHtml(t.date)}: ${t.score}/10"></div>`;
-  }).join("");
+  return timeline
+    .filter(t => t.score != null)
+    .map(t => {
+      const h = 10 + ((t.score - 1) / 9) * 22;
+      const color = scoreColor(t.score);
+      return `<div class="traj-bar" style="height:${h}px;background:${color}" title="${escapeHtml(t.date)}: ${t.score}/10"></div>`;
+    }).join("");
 }
 
 function renderCard(entry, speakerKey, idx, accentColor) {
   const sc = scoreColor(entry.score);
-  const quoteHtml = entry.quote
-    ? `<div class="quote-box" style="border-left:3px solid ${accentColor}">
-         <p class="quote-label">&#10078; VERBATIM</p>
-         <p class="quote-text">"${escapeHtml(entry.quote)}"</p>
-         ${entry.quoteUrl ? `<a class="quote-link" href="${entry.quoteUrl}" target="_blank" rel="noopener noreferrer">&#8599; primary source</a>` : ""}
-       </div>`
-    : `<div class="no-quote-box">
-         <p class="no-quote-text">No standalone verbatim text published for this event.</p>
-         ${entry.quoteUrl ? `<a class="ref-link" href="${entry.quoteUrl}" target="_blank" rel="noopener noreferrer">&#8599; reference</a>` : ""}
-       </div>`;
+  const newFlag = entry.isNew ? `<span class="new-flag">NEW</span>` : "";
+
+  let bodyHtml;
+  if (entry.unconfirmed) {
+    bodyHtml = `
+      <div class="unconfirmed-box">
+        <p class="unconfirmed-text"><b>Unconfirmed:</b> ${escapeHtml(entry.unconfirmedNote)}</p>
+      </div>`;
+  } else if (entry.quote) {
+    const corrobHtml = entry.corroborated
+      ? `<div class="corroborated">✓ ${escapeHtml(entry.corroborated)}</div>`
+      : "";
+    bodyHtml = `
+      <div class="quote-box" style="border-left:3px solid ${accentColor}">
+        <p class="quote-label">&#10078; VERBATIM</p>
+        <p class="quote-text">"${escapeHtml(entry.quote)}"</p>
+        <div class="quote-source-row">
+          <span class="quote-source">— ${escapeHtml(entry.quoteSource)}</span>
+          ${entry.quoteUrl ? `<a class="quote-link" href="${entry.quoteUrl}" target="_blank" rel="noopener noreferrer" style="color:${accentColor}">↗ source</a>` : ""}
+        </div>
+        ${corrobHtml}
+      </div>`;
+  } else {
+    bodyHtml = `
+      <div class="no-quote-box">
+        <p class="no-quote-text">No standalone verbatim text published for this event.</p>
+        ${entry.quoteUrl ? `<a class="ref-link" href="${entry.quoteUrl}" target="_blank" rel="noopener noreferrer">↗ reference</a>` : ""}
+      </div>`;
+  }
+
+  const partialNote = entry.partial
+    ? `<p class="partial-note">⚠ Partial — policy content is roughly 1/3 of this speech, not the throughline.</p>`
+    : "";
+
+  const scoreDisplay = entry.score != null
+    ? `<p class="score-chip-val" style="color:${sc}">${entry.score}</p><p class="score-chip-unit">/10</p>`
+    : `<p class="score-chip-val" style="color:${sc};font-size:11px">N/A</p>`;
 
   return `
-    <div class="card" data-speaker="${speakerKey}" data-idx="${idx}">
+    <div class="card ${entry.unconfirmed ? 'unconfirmed' : ''}" data-speaker="${speakerKey}" data-idx="${idx}">
       <div class="card-top">
         <div style="flex:1;min-width:0">
           <div class="card-date-line">
             <span class="card-date">${escapeHtml(entry.date)}</span>
             <span class="card-loc">&middot; ${escapeHtml(entry.location)}</span>
+            ${newFlag}
           </div>
           <p class="card-title">${escapeHtml(entry.title)}</p>
           <p class="card-event">${escapeHtml(entry.event)}</p>
         </div>
-        <div class="score-chip">
-          <p class="score-chip-val" style="color:${sc}">${entry.score}</p>
-          <p class="score-chip-unit">/10</p>
-        </div>
+        <div class="score-chip">${scoreDisplay}</div>
       </div>
       <p class="card-summary">${escapeHtml(entry.summary)}</p>
-      <div class="card-details">${quoteHtml}</div>
+      ${partialNote}
+      <div class="card-details">${bodyHtml}</div>
     </div>
   `;
 }
@@ -393,7 +487,7 @@ function renderApp() {
       </div>
     </div>
     <p class="footer-note">
-      Sources: clevelandfed.org &middot; kansascityfed.org &middot; federalreserve.gov &middot; Bloomberg &middot; FXStreet &middot; CNBC/Reuters coverage &middot; Compiled Jun 23, 2026
+      Sources: clevelandfed.org &middot; kansascityfed.org &middot; federalreserve.gov &middot; Reuters &middot; Bloomberg &middot; FXStreet &middot; PANews &middot; Investing.com &middot; Compiled Jun 23, 2026
     </p>
   `;
   document.getElementById("root").innerHTML = html;
@@ -401,14 +495,12 @@ function renderApp() {
 }
 
 function attachListeners() {
-  // Card expand/collapse
   document.querySelectorAll(".card").forEach(card => {
     card.addEventListener("click", () => {
       card.classList.toggle("open");
     });
   });
 
-  // View toggle
   document.querySelectorAll(".toggle-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
