@@ -1,0 +1,380 @@
+import { useState } from "react";
+
+// ─── DATA NOTE ───────────────────────────────────────────────────────────
+// 2026 FOMC voting rotation: Hammack (Cleveland), Logan (Dallas), Kashkari
+// (Minneapolis), Paulson (Philadelphia) rotated ON as voters.
+// Schmid (Kansas City), Goolsbee (Chicago), Musalem (St Louis), Collins
+// (Boston) rotated OFF — non-voting in 2026, but still FOMC participants:
+// they attend, discuss, submit dot-plot projections, and their public
+// speeches still carry signal for the rest of the rotation cycle.
+// ───────────────────────────────────────────────────────────────────────
+
+const SPEAKERS = {
+  hammack: {
+    name: "Beth Hammack",
+    role: "Cleveland Fed President",
+    status: "VOTING 2026",
+    statusColor: "#b91c1c",
+    photo: "🏦",
+    startScore: 6,
+    endScore: 9,
+    timeline: [
+      {
+        date: "Feb 10, 2026",
+        event: "Ohio Bankers League 2026 Economic Summit",
+        location: "Columbus, OH",
+        title: "Recipe for a Thriving US Economy",
+        score: 6,
+        summary: "Early-year patient hawk. Prefers to 'err on the side of patience' rather than fine-tune the rate. Sees policy as roughly 'barely restrictive.'",
+        quote: "Rather than trying to fine tune the funds rate, I'd prefer to err on the side of patience as we assess the impact of recent rate reductions and monitor how the economy performs. Based on my forecast, we could be on hold for quite some time.",
+        quoteUrl: "https://www.clevelandfed.org/collections/press-releases/2026/pr-20260210-president-hammack-speech-to-ohio-bankers-league",
+      },
+      {
+        date: "Mar 6, 2026",
+        event: "2026 US Monetary Policy Forum, Booth School of Business",
+        location: "New York, NY",
+        title: "On the Safe-Haven Status of the Dollar",
+        score: 6,
+        summary: "Policy 'in a good position' at neutral. Explicitly frames risk as two-sided — first signal she isn't pre-committing to a direction, setting up the April pivot.",
+        quote: "The fed funds rate is around neutral, which allows us to see how things are going to play out. Under my base case, I think policy should be on hold for quite some time... But it's easy to envision other scenarios, as well, so I see two-sided risks to rates.",
+        quoteUrl: "https://www.clevelandfed.org/collections/speeches/2026/sp-20260306-on-the-safe-haven-status-of-the-dollar",
+      },
+      {
+        date: "Apr 29, 2026",
+        event: "FOMC Meeting — DISSENT",
+        location: "Washington, DC",
+        title: "8-4 vote, most dissents since 1992",
+        score: 8,
+        summary: "Hawkish break. Dissented against retaining the 'easing bias' in the post-meeting statement alongside Kashkari and Logan. First formal departure from majority.",
+        quote: null,
+        quoteUrl: "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260429a.htm",
+      },
+      {
+        date: "May 1, 2026",
+        event: "Dissent Statement",
+        location: "Cleveland Fed",
+        title: "Statement regarding April FOMC vote",
+        score: 8,
+        summary: "Formal writeup of the dissent. Broad-based inflation pressure plus oil prices means the easing bias no longer fits the outlook.",
+        quote: "Inflation pressures continue to be broad based, and rising oil prices present an additional source of inflationary pressure... I see this clear easing bias as no longer appropriate given the outlook.",
+        quoteUrl: "https://www.clevelandfed.org/collections/speeches/2026/sp-20260501-statement-regarding-april-fomc-meeting-vote",
+      },
+      {
+        date: "May 7, 2026",
+        event: "Ohio CEO Summit Fireside Chat",
+        location: "Covelli Center, Columbus, OH",
+        title: "Fireside chat",
+        score: 8,
+        summary: "Public appearance reinforcing the May 1 dissent rationale in conversational format. No new substantive text published.",
+        quote: null,
+        quoteUrl: null,
+      },
+      {
+        date: "May 14, 2026",
+        event: "Opening remarks (event)",
+        location: "—",
+        title: "Opening remarks",
+        score: 8,
+        summary: "Brief opening remarks; no major new policy content beyond the post-dissent stance.",
+        quote: null,
+        quoteUrl: null,
+      },
+      {
+        date: "Jun 2, 2026",
+        event: "City Club of Cleveland",
+        location: "Cleveland, OH",
+        title: "It Takes Two to Make an Economy Go Right",
+        score: 9,
+        summary: "Most hawkish text of the year. For the first time states explicitly that policy 'may not be sufficiently restrictive' — a materially stronger claim than 'patient hold.' Direct warning on inflation-expectations risk, two weeks before the June FOMC.",
+        quote: "Based on the data, I'm more concerned about the growing risks of persistently elevated inflation than the risks to full employment, and that monetary policy may not be sufficiently restrictive to bring inflation down to 2%. If we wait for definitive evidence that high inflation has become embedded in the economy, it may require larger policy adjustments, at greater cost.",
+        quoteUrl: "https://www.clevelandfed.org/collections/press-releases/pr-20260602-cleveland-fed-president-hammack-speech",
+      },
+      {
+        date: "Jun 17, 2026",
+        event: "FOMC Meeting — voted with majority, 12-0",
+        location: "Washington, DC",
+        title: "Warsh's first meeting; easing bias removed, dot plot turns hawkish",
+        score: 9,
+        summary: "Vote was unanimous because the committee granted the April dissenters' core demand — the easing-bias language was stripped from the statement entirely. Median 2026 dot moved to 3.8% (implying a hike) from 3.4% in March. Hammack's June 2 framing is consistent with the committee's broader hawkish dot-plot shift.",
+        quote: null,
+        quoteUrl: "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260617a.htm",
+      },
+    ],
+  },
+  schmid: {
+    name: "Jeff Schmid",
+    role: "Kansas City Fed President",
+    status: "NON-VOTING 2026",
+    statusColor: "#78716c",
+    photo: "🌾",
+    startScore: 8,
+    endScore: 9,
+    timeline: [
+      {
+        date: "Jan 15, 2026",
+        event: "Economic Club of Kansas City",
+        location: "Kansas City, MO",
+        title: "The Economic Outlook and Monetary Policy",
+        score: 8,
+        summary: "Opens the year already hawkish — references his Oct & Dec 2025 dissents against cuts. Inflation 'too hot,' policy barely restrictive. Rotated off voting seat for 2026 but unchanged in substance.",
+        quote: "I see little reason at this point to further lower the policy rate... While I am hopeful that price pressures will ease, I am reluctant to step back until I see more convincing signs that overall inflation is headed in the right direction.",
+        quoteUrl: "https://www.kansascityfed.org/speeches/the-economic-outlook-and-monetary-policy-2026/",
+      },
+      {
+        date: "Feb 11, 2026",
+        event: "Economic Forum of Albuquerque",
+        location: "Albuquerque, NM",
+        title: "Monetary Policy and the Economic Outlook",
+        score: 8,
+        summary: "Frames inflation persistence as a policy choice, not an inherent property of the shock — a more theoretically loaded hawkish argument than most peers make.",
+        quote: "With growth showing momentum and inflation still hot, I'm not seeing many indications of economic restraint... It is the actions of monetary policy that determine whether a price shock is transitory or not.",
+        quoteUrl: "https://www.kansascityfed.org/speeches/monetary-policy-and-the-economic-outlook-albuquerque/",
+      },
+      {
+        date: "Mar 3, 2026",
+        event: "Metro Denver Executive Club",
+        location: "Denver, CO",
+        title: "Remarks to Denver Executive Club",
+        score: 8,
+        summary: "Reiterates persistent above-target inflation; no softening despite two months of data.",
+        quote: "Inflation has been above the Fed's objective for nearly five years now. I don't think we have room to be complacent.",
+        quoteUrl: "https://www.bloomberg.com/news/articles/2026-03-03/schmid-says-fed-can-t-be-complacent-about-still-hot-inflation",
+      },
+      {
+        date: "Mar 31, 2026",
+        event: "OKC Rotary Club",
+        location: "Oklahoma City, OK",
+        title: "The Economic Outlook and Monetary Policy",
+        score: 8,
+        summary: "Acknowledges tailwinds (productivity, low unemployment) but flags a structural risk: inflation getting 'stuck' near 3% rather than 2%. Treats anchored expectations as fragile, earned credibility — not a fact to take for granted.",
+        quote: "I believe there is a real risk that inflation will get stuck closer to 3 percent than 2 percent in the long run. I take little comfort from the fact that most measures of medium- and long-term inflation expectations have not moved higher of late.",
+        quoteUrl: "https://www.kansascityfed.org/documents/15518/2026-Schmid-OKCRotary-03-31.pdf",
+      },
+      {
+        date: "May 14, 2026",
+        event: "Kansas City event",
+        location: "Kansas City, MO",
+        title: "Remarks on inflation risk",
+        score: 9,
+        summary: "Tone sharpens after a hot 6% PPI print (hottest in ~4 years). Explicitly names inflation as the dominant risk to the economy, ahead of growth or labour concerns.",
+        quote: "Continued inflation is the most pressing risk to the economy — clear that it is still too high.",
+        quoteUrl: "https://www.fxstreet.com/news/feds-schmid-continued-inflation-is-the-most-pressing-risk-to-the-economy-202605141432",
+      },
+      {
+        date: "May 29, 2026",
+        event: "Reykjavik Economic Conference",
+        location: "Reykjavik, Iceland",
+        title: "The Local and the Global in Monetary Policy",
+        score: 9,
+        summary: "Most explicit hawkish signal of the year — frames continued vigilance as a communications imperative for the whole Committee, not just his own vote, just before Warsh's first meeting.",
+        quote: "With inflation running above the Fed's 2% definition of price stability for over five years, now is not the time to let down our guard. We must continue to signal our commitment to price stability and our willingness to take the actions necessary to achieve our mandate.",
+        quoteUrl: "https://www.bloomberg.com/news/articles/2026-05-29/fed-s-schmid-says-officials-must-signal-commitment-to-inflation",
+      },
+      {
+        date: "Jun 17, 2026",
+        event: "FOMC Meeting — non-voting participant",
+        location: "Washington, DC",
+        title: "Submits SEP dot; Warsh's first meeting",
+        score: 9,
+        summary: "Non-voting in 2026 but still attends, discusses, and submits an anonymous dot-plot projection. Committee-wide dot median moved to imply a 2026 hike (3.8%, from 3.4% in March) — directionally consistent with everything Schmid has said since January.",
+        quote: null,
+        quoteUrl: "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20260617.pdf",
+      },
+    ],
+  },
+};
+
+function scoreColor(score) {
+  return score <= 3 ? "#047857" : score <= 5 ? "#6b7280" : score <= 7 ? "#c2410c" : "#b91c1c";
+}
+
+function MiniTrajectory({ timeline }) {
+  const max = 10, min = 1;
+  const pct = v => `${((v - min) / (max - min)) * 100}%`;
+  return (
+    <div style={{ display:"flex", alignItems:"flex-end", gap:3, height:32 }}>
+      {timeline.map((t, i) => (
+        <div key={i} style={{
+          flex:1, background: scoreColor(t.score),
+          height: `${10 + ((t.score - 1) / 9) * 22}px`,
+          borderRadius:2, opacity: 0.85,
+        }} title={`${t.date}: ${t.score}/10`} />
+      ))}
+    </div>
+  );
+}
+
+function SpeechCard({ entry, accentColor, isOpen, onToggle }) {
+  const sc = scoreColor(entry.score);
+  return (
+    <div onClick={onToggle} style={{
+      background: isOpen ? "#fafafa" : "#ffffff",
+      border:"1px solid #e5e7eb",
+      borderLeft:`3px solid ${sc}`,
+      borderRadius:8,
+      padding:"10px 12px",
+      cursor:"pointer",
+      marginBottom:7,
+    }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+            <span style={{ fontSize:11, fontWeight:800, color:"#111827" }}>{entry.date}</span>
+            <span style={{ fontSize:9, color:"#9ca3af" }}>· {entry.location}</span>
+          </div>
+          <p style={{ margin:"3px 0 0", fontSize:12, fontWeight:700, color:"#374151" }}>{entry.title}</p>
+          <p style={{ margin:"1px 0 0", fontSize:10, color:"#9ca3af" }}>{entry.event}</p>
+        </div>
+        <div style={{
+          flexShrink:0, background:"#f9fafb", border:"1px solid #e5e7eb",
+          borderRadius:6, padding:"3px 8px", textAlign:"center", minWidth:34,
+        }}>
+          <p style={{ margin:0, fontSize:15, fontWeight:800, color: sc, lineHeight:1 }}>{entry.score}</p>
+          <p style={{ margin:0, fontSize:7, color:"#9ca3af" }}>/10</p>
+        </div>
+      </div>
+
+      <p style={{ margin:"7px 0 0", fontSize:11.5, color:"#4b5563", lineHeight:1.55 }}>{entry.summary}</p>
+
+      {isOpen && (
+        <div style={{ marginTop:9 }}>
+          {entry.quote ? (
+            <div style={{ background:"#1e293b", borderRadius:7, padding:"9px 12px", borderLeft:`3px solid ${accentColor}` }}>
+              <p style={{ margin:"0 0 5px", fontSize:8, fontWeight:700, letterSpacing:"0.1em", color:"#64748b" }}>❝ VERBATIM</p>
+              <p style={{ margin:"0 0 6px", fontSize:11.5, color:"#f1f5f9", lineHeight:1.65, fontStyle:"italic" }}>"{entry.quote}"</p>
+              {entry.quoteUrl && (
+                <a href={entry.quoteUrl} target="_blank" rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  style={{ fontSize:9.5, color:"#60a5fa", fontWeight:700, textDecoration:"none" }}>
+                  ↗ primary source
+                </a>
+              )}
+            </div>
+          ) : (
+            <div style={{ background:"#f9fafb", border:"1px dashed #d1d5db", borderRadius:7, padding:"7px 10px" }}>
+              <p style={{ margin:0, fontSize:10, color:"#9ca3af", fontStyle:"italic" }}>
+                No standalone verbatim text published for this event.
+              </p>
+              {entry.quoteUrl && (
+                <a href={entry.quoteUrl} target="_blank" rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  style={{ fontSize:9.5, color:"#2563eb", fontWeight:700, textDecoration:"none" }}>
+                  ↗ reference
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SpeakerColumn({ speakerKey, data }) {
+  const [openIdx, setOpenIdx] = useState(null);
+  const accent = speakerKey === "hammack" ? "#b91c1c" : "#92400e";
+
+  return (
+    <div style={{ flex:1, minWidth:0 }}>
+      {/* Speaker header */}
+      <div style={{
+        background:"#ffffff", border:"1px solid #e5e7eb", borderRadius:10,
+        padding:"12px 14px", marginBottom:10,
+      }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
+          <div>
+            <h2 style={{ margin:0, fontSize:16, fontWeight:800, color:"#111827" }}>{data.name}</h2>
+            <p style={{ margin:"1px 0 0", fontSize:10, color:"#9ca3af" }}>{data.role}</p>
+          </div>
+          <span style={{
+            fontSize:8.5, fontWeight:800, letterSpacing:"0.08em",
+            color: data.statusColor, background:`${data.statusColor}14`,
+            border:`1px solid ${data.statusColor}44`, borderRadius:4,
+            padding:"3px 6px", whiteSpace:"nowrap",
+          }}>{data.status}</span>
+        </div>
+
+        <div style={{ marginTop:10, display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ flex:1 }}>
+            <MiniTrajectory timeline={data.timeline} />
+          </div>
+          <div style={{ textAlign:"right", flexShrink:0 }}>
+            <p style={{ margin:0, fontSize:9, color:"#9ca3af" }}>Jan → Jun</p>
+            <p style={{ margin:0, fontSize:13, fontWeight:800, color:"#111827" }}>
+              {data.startScore} <span style={{color:"#d1d5db", fontWeight:400}}>→</span> {data.endScore}
+            </p>
+          </div>
+        </div>
+        <p style={{ margin:"6px 0 0", fontSize:9.5, color:"#b91c1c", fontWeight: data.endScore > data.startScore ? 700 : 400 }}>
+          {data.endScore > data.startScore ? `▲ +${data.endScore - data.startScore} YTD — consistently hawkish, escalating into June` : "Flat YTD"}
+        </p>
+      </div>
+
+      {/* Timeline */}
+      {data.timeline.map((entry, i) => (
+        <SpeechCard
+          key={i}
+          entry={entry}
+          accentColor={accent}
+          isOpen={openIdx === i}
+          onToggle={() => setOpenIdx(openIdx === i ? null : i)}
+        />
+      ))}
+    </div>
+  );
+}
+
+export default function YTDDeepDive() {
+  const [view, setView] = useState("both"); // "both" | "hammack" | "schmid"
+
+  return (
+    <div style={{
+      minHeight:"100vh", background:"#ffffff", color:"#111827",
+      fontFamily:"'Avenir Next','Avenir','Nunito Sans','Trebuchet MS',sans-serif",
+      WebkitFontSmoothing:"antialiased",
+    }}>
+      {/* HEADER */}
+      <div style={{ background:"#ffffff", borderBottom:"1px solid #e5e7eb", padding:"16px 16px 12px", position:"sticky", top:0, zIndex:50 }}>
+        <p style={{ margin:"0 0 3px", fontSize:10, fontWeight:700, letterSpacing:"0.18em", color:"#dc2626" }}>FED HAWK DEEP-DIVE · YTD 2026</p>
+        <h1 style={{ margin:"0 0 2px", fontSize:19, fontWeight:800, letterSpacing:"-0.02em" }}>Hammack vs. Schmid</h1>
+        <p style={{ margin:0, fontSize:10, color:"#9ca3af" }}>All public remarks, Jan 1 – Jun 23, 2026 · Two of the FOMC's most consistent hawks</p>
+
+        <div style={{ marginTop:10, background:"#fffbeb", border:"1px solid #fde68a", borderRadius:6, padding:"6px 10px", fontSize:10, color:"#92400e", lineHeight:1.5 }}>
+          <b>Note on voting status:</b> Hammack rotated <b>onto</b> the FOMC voting seat for 2026 (her Cleveland/Chicago pair group). Schmid rotated <b>off</b> his Minneapolis/Kansas City/San Francisco pair group this year — Kashkari (Minneapolis) holds that seat instead. Schmid remains a full FOMC participant regardless: he attends, discusses, and submits an anonymous dot-plot projection at every meeting.
+        </div>
+
+        <div style={{ display:"flex", gap:5, marginTop:10 }}>
+          {[
+            { k:"both", l:"Both" },
+            { k:"hammack", l:"Hammack only" },
+            { k:"schmid", l:"Schmid only" },
+          ].map(o => (
+            <button key={o.k} onClick={() => setView(o.k)} style={{
+              background: view === o.k ? "#111827" : "#ffffff",
+              color: view === o.k ? "#ffffff" : "#6b7280",
+              border:`1.5px solid ${view === o.k ? "#111827" : "#e5e7eb"}`,
+              fontSize:11, fontWeight:700, padding:"5px 12px", borderRadius:20,
+              cursor:"pointer", fontFamily:"inherit",
+            }}>{o.l}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* BODY */}
+      <div style={{ padding:"12px 12px 32px" }}>
+        <div style={{ display:"flex", gap:12, flexDirection: view === "both" ? "row" : "column", flexWrap:"wrap" }}>
+          {(view === "both" || view === "hammack") && (
+            <SpeakerColumn speakerKey="hammack" data={SPEAKERS.hammack} />
+          )}
+          {(view === "both" || view === "schmid") && (
+            <SpeakerColumn speakerKey="schmid" data={SPEAKERS.schmid} />
+          )}
+        </div>
+      </div>
+
+      <p style={{ textAlign:"center", padding:"0 16px 24px", fontSize:9, color:"#d1d5db", letterSpacing:"0.04em" }}>
+        Sources: clevelandfed.org · kansascityfed.org · federalreserve.gov · Bloomberg · FXStreet · CNBC/Reuters coverage · Compiled Jun 23, 2026
+      </p>
+    </div>
+  );
+}
