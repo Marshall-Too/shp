@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fed Data Task Force — Research Dashboard</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-alt: #f7f8fc;
+    --surface: #ffffff;
+    --border: #e2e5ef;
+    --accent: #1a56db;
+    --accent-light: #ebf0ff;
+    --accent2: #0e9f6e;
+    --accent2-light: #e8f8f2;
+    --warn: #d97706;
+    --warn-light: #fef3c7;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --text: #111827;
+    --text-2: #374151;
+    --text-3: #6b7280;
+    --text-4: #9ca3af;
+    --nav-w: 220px;
+    --header-h: 56px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg-alt); color: var(--text); font-size: 14px; line-height: 1.6; }
+
+  /* ── Header ── */
+  header {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+    background: var(--surface); border-bottom: 2px solid var(--accent-light);
+    display: flex; align-items: center; padding: 0 24px; z-index: 100;
+    box-shadow: 0 2px 8px rgba(26,86,219,.08);
+  }
+  header .logo { font-weight: 700; font-size: 15px; color: var(--accent); letter-spacing: -.3px; }
+  header .subtitle { margin-left: 12px; color: var(--text-3); font-size: 12px; padding-left: 12px; border-left: 1px solid var(--border); }
+  header .badge { margin-left: auto; background: var(--accent-light); color: var(--accent); font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+
+  /* ── Nav ── */
+  nav {
+    position: fixed; top: var(--header-h); left: 0; width: var(--nav-w);
+    height: calc(100vh - var(--header-h)); overflow-y: auto; padding: 16px 0;
+    background: var(--surface); border-right: 1px solid var(--border); z-index: 90;
+  }
+  nav a {
+    display: block; padding: 7px 20px; color: var(--text-3); text-decoration: none;
+    font-size: 12.5px; transition: all .15s; line-height: 1.4;
+  }
+  nav a:hover { color: var(--accent); background: var(--accent-light); }
+  nav a.active { color: var(--accent); background: var(--accent-light); font-weight: 600; border-left: 3px solid var(--accent); padding-left: 17px; }
+  nav .nav-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text-4); padding: 14px 20px 4px; }
+
+  /* ── Main ── */
+  main { margin-left: var(--nav-w); padding-top: var(--header-h); min-height: 100vh; }
+  .content { max-width: 920px; padding: 32px 40px 80px; }
+
+  /* ── Section ── */
+  .section { margin-bottom: 52px; scroll-margin-top: calc(var(--header-h) + 16px); }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid var(--accent-light); }
+  .section-num { background: var(--accent); color: #fff; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .section-title { font-size: 20px; font-weight: 700; color: var(--text); }
+  .section-sub { color: var(--text-3); font-size: 12px; margin-top: 2px; }
+
+  h3 { font-size: 14px; font-weight: 700; color: var(--text); margin: 20px 0 10px; }
+  p { color: var(--text-2); margin-bottom: 10px; }
+
+  /* ── Cards ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .card-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .stat-val { font-size: 30px; font-weight: 700; color: var(--accent); line-height: 1; margin-bottom: 4px; }
+  .stat-val.danger { color: var(--danger); }
+  .stat-val.warn { color: var(--warn); }
+  .stat-val.ok { color: var(--accent2); }
+  .stat-label { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .5px; }
+  .stat-note { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+  /* ── Tables ── */
+  .tbl-wrap { overflow-x: auto; margin: 12px 0 18px; border-radius: 8px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); }
+  th { background: var(--bg-alt); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--text-3); padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { font-size: 13px; padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-2); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg-alt); }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .tag-fail { background: var(--danger-light); color: var(--danger); }
+  .tag-warn { background: var(--warn-light); color: var(--warn); }
+  .tag-ok { background: var(--accent2-light); color: var(--accent2); }
+  .tag-info { background: var(--accent-light); color: var(--accent); }
+
+  /* ── Blockquote ── */
+  blockquote { border-left: 3px solid var(--accent); padding: 10px 16px; margin: 12px 0; background: var(--accent-light); border-radius: 0 6px 6px 0; color: var(--text-2); font-style: italic; font-size: 13px; }
+
+  /* ── Alert boxes ── */
+  .alert { padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: 13px; line-height: 1.5; }
+  .alert-danger { background: var(--danger-light); border: 1px solid #fca5a5; color: #7f1d1d; }
+  .alert-warn { background: var(--warn-light); border: 1px solid #fcd34d; color: #78350f; }
+  .alert-info { background: var(--accent-light); border: 1px solid #93c5fd; color: #1e3a8a; }
+  .alert-ok { background: var(--accent2-light); border: 1px solid #6ee7b7; color: #065f46; }
+  .alert strong { font-weight: 700; }
+
+  /* ── SVG Charts ── */
+  .chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 14px 0; }
+  .chart-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+  .chart-sub { font-size: 11px; color: var(--text-3); margin-bottom: 14px; }
+  svg text { font-family: 'Segoe UI', system-ui, sans-serif; }
+
+  /* ── Timeline ── */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 9px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .tl-item { position: relative; margin-bottom: 18px; }
+  .tl-dot { position: absolute; left: -22px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid #fff; box-shadow: 0 0 0 2px var(--accent-light); }
+  .tl-dot.warn { background: var(--warn); box-shadow: 0 0 0 2px var(--warn-light); }
+  .tl-dot.ok { background: var(--accent2); box-shadow: 0 0 0 2px var(--accent2-light); }
+  .tl-date { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .4px; }
+  .tl-text { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+
+  /* ── Progress bars ── */
+  .bar-list { margin: 10px 0; }
+  .bar-item { margin-bottom: 11px; }
+  .bar-label { font-size: 12px; color: var(--text-2); margin-bottom: 3px; display: flex; justify-content: space-between; }
+  .bar-track { height: 8px; background: var(--bg-alt); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+
+  /* ── Two-col ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px; }
+
+  @media (max-width: 900px) {
+    nav { display: none; }
+    main { margin-left: 0; }
+    .content { padding: 20px; }
+    .card-grid, .card-grid-3, .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">Fed Data Task Force</span>
+  <span class="subtitle">Research Dashboard — June 2026</span>
+  <span class="badge">Warsh Era</span>
+</header>
+
+<nav id="sidenav">
+  <div class="nav-section">Foundation</div>
+  <a href="#s1">1. Warsh's Prior</a>
+  <a href="#s2">2. Fed's Existing Tools</a>
+  <a href="#s3">3. Official Stats Degradation</a>
+  <div class="nav-section">Analysis</div>
+  <a href="#s4">4. CB Benchmarks</a>
+  <a href="#s5">5. Critics &amp; Critique</a>
+  <a href="#s6">6. Data &amp; Policy Errors</a>
+  <div class="nav-section">Context</div>
+  <a href="#s7">7. Prediction Markets</a>
+  <a href="#s8">8. Beige Book Reform</a>
+  <a href="#s9">9. Better Collection</a>
+  <a href="#s10">10. Perennial Question?</a>
+  <div class="nav-section">Conclusions</div>
+  <a href="#s11">11. Grand Principles</a>
+  <a href="#s12">12. Task Force Findings</a>
+</nav>
+
+<main>
+<div class="content">
+
+<!-- ══════ S1 ══════ -->
+<section class="section" id="s1">
+  <div class="section-header">
+    <div class="section-num">1</div>
+    <div>
+      <div class="section-title">Warsh's Intellectual Prior</div>
+      <div class="section-sub">Private sector &gt; government survey — a view consistent since 2010</div>
+    </div>
+  </div>
+
+  <div class="card-grid">
+    <div class="stat-card">
+      <div class="stat-val">2006</div>
+      <div class="stat-label">Joined FOMC</div>
+      <div class="stat-note">Youngest governor in Fed history; 2006–2011 tenure</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">Jun 17</div>
+      <div class="stat-label">Task force announced</div>
+      <div class="stat-note">First FOMC presser as chair, 2026 — 5 task forces total</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>The through-line: 2010 → 2026</h3>
+    <blockquote>"Financial market prices are probably the most important source of information to guide central bankers." — Warsh, 2010</blockquote>
+    <blockquote>"Most of the data that central bankers and other government officials in the United States consume come with old-fashioned survey methods." — Warsh, June 2026</blockquote>
+    <p>The June 2026 task force is not a new idea. The intellectual prior — private sector and market-generated information is epistemically superior to government surveys — traces to his 2006–2011 FOMC tenure. His 2010 speeches also identified the self-referential trap: when the Fed communicates aggressively, markets price Fed reactions rather than fundamentals, destroying the very signal the Fed relies on.</p>
+  </div>
+
+  <div class="card">
+    <h3>Key June 2026 quotes — verbatim</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Theme</th><th>Quote</th></tr></thead>
+        <tbody>
+          <tr><td>Survey critique</td><td>"Old-fashioned survey methods... response rates that we need... questions that might have been quite applicable a generation ago."</td></tr>
+          <tr><td>CEO comparison</td><td>"Almost every private company CEO running his or her business [does so] with real-time information. That isn't subject to much revision."</td></tr>
+          <tr><td>Timeliness</td><td>"We're waiting on the first Friday after the month of payroll index... that might be an echo of history."</td></tr>
+          <tr><td>Reform vector</td><td>"Best practices from the private sector and new tools made possible by AI."</td></tr>
+          <tr><td>Scope limit</td><td>"In a word, no" — explicitly ruled out reconstituting GDP methodology.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="alert alert-info"><strong>What this reveals:</strong> Warsh is not interested in better econometrics. He is interested in better <em>intelligence</em>. The comparison class is a corporate CEO's management information system, not an academic forecasting model. The task force is about data sourcing and institutional design, not statistical methodology.</div>
+  </div>
+</section>
+
+<!-- ══════ S2 ══════ -->
+<section class="section" id="s2">
+  <div class="section-header">
+    <div class="section-num">2</div>
+    <div>
+      <div class="section-title">What the Fed Already Has — and the Adoption Gap</div>
+      <div class="section-sub">The research capacity exists; the policy-process translation does not</div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Tool</th><th>District</th><th>Launched</th><th>Update</th><th>Key limitation</th></tr></thead>
+      <tbody>
+        <tr><td><strong>GDPNow</strong></td><td>Atlanta</td><td>Jul 2011</td><td>6–7× / qtr</td><td>Faster assembly of official data only — no new data sources</td></tr>
+        <tr><td><strong>NY Staff Nowcast</strong></td><td>New York</td><td>Apr 2016</td><td>Weekly</td><td>36 predictors; research product; not in Tealbook</td></tr>
+        <tr><td><strong>Trimmed Mean PCE</strong></td><td>Dallas</td><td>2005 (data 1977)</td><td>Monthly</td><td>Asymmetric 24%/31% trim; calibrated pre-2010; failed 2021–23 inflation</td></tr>
+        <tr><td><strong>Median CPI</strong></td><td>Cleveland</td><td>1983/1991</td><td>Monthly</td><td>Single-point median; same distributional assumption failure as Trimmed Mean</td></tr>
+        <tr><td><strong>ADS Index</strong></td><td>Philadelphia</td><td>2009/2011</td><td>"Daily"*</td><td>*New info only on release days; measures activity, not prices</td></tr>
+        <tr><td><strong>Chicago NFCI</strong></td><td>Chicago</td><td>1971/2012</td><td>Weekly</td><td>Financial conditions signal in 2021 was correct — not operationalised as a tightening trigger</td></tr>
+        <tr><td><strong>Beige Book</strong></td><td>All 12</td><td>1970</td><td>8× / year</td><td>Qualitative prose; no scoring; predictive value broke down post-2021</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- GDPNow performance chart -->
+  <div class="chart-wrap">
+    <div class="chart-title">GDPNow Final Estimate vs. BEA Advance — Selected Quarters (SAAR %)</div>
+    <div class="chart-sub">Source: FRED GDPNOW, GDPC1. Each pair: GDPNow (blue) vs BEA advance (green/red). Negative = red.</div>
+    <svg viewBox="0 0 720 270" width="100%">
+      <!-- Grid lines horizontal -->
+      <line x1="65" y1="30" x2="695" y2="30" stroke="#f3f4f6" stroke-width="1"/>
+      <line x1="65" y1="78" x2="695" y2="78" stroke="#f3f4f6" stroke-width="1"/>
+      <line x1="65" y1="126" x2="695" y2="126" stroke="#f3f4f6" stroke-width="1"/>
+      <line x1="65" y1="174" x2="695" y2="174" stroke="#e2e5ef" stroke-width="1.5"/>
+      <!-- Zero line -->
+      <line x1="65" y1="174" x2="695" y2="174" stroke="#6b7280" stroke-width="1.5"/>
+      <line x1="65" y1="30" x2="65" y2="174" stroke="#e2e5ef" stroke-width="1.5"/>
+      <!-- Y labels: 0%=174, 8%=30 → 1%=18px -->
+      <text x="59" y="34" font-size="9" fill="#9ca3af" text-anchor="end">+8%</text>
+      <text x="59" y="82" font-size="9" fill="#9ca3af" text-anchor="end">+4%</text>
+      <text x="59" y="130" font-size="9" fill="#9ca3af" text-anchor="end">+1%</text>
+      <text x="59" y="178" font-size="9" fill="#9ca3af" text-anchor="end">0%</text>
+      <text x="59" y="215" font-size="9" fill="#9ca3af" text-anchor="end">−2%</text>
+      <!-- below zero line -->
+      <line x1="65" y1="174" x2="695" y2="210" stroke="none"/>
+
+      <!-- Q1 2021 GDPNow +7.9, BEA +5.7 | x group 1: center 120 -->
+      <rect x="95" y="32" width="24" height="142" fill="#1a56db" rx="3" opacity=".85"/>
+      <rect x="123" y="72" width="24" height="102" fill="#0e9f6e" rx="3" opacity=".85"/>
+      <text x="120" y="247" font-size="9" fill="#374151" text-anchor="middle">Q1 2021</text>
+      <text x="107" y="26" font-size="8" fill="#1a56db" text-anchor="middle">7.9%</text>
+      <text x="135" y="66" font-size="8" fill="#0e9f6e" text-anchor="middle">5.7%</text>
+
+      <!-- Q3 2021 GDPNow +0.2, BEA +3.3 | center 240 -->
+      <rect x="215" y="170" width="24" height="4" fill="#1a56db" rx="3" opacity=".85"/>
+      <rect x="243" y="114" width="24" height="60" fill="#0e9f6e" rx="3" opacity=".85"/>
+      <text x="240" y="247" font-size="9" fill="#374151" text-anchor="middle">Q3 2021</text>
+      <text x="227" y="164" font-size="8" fill="#1a56db" text-anchor="middle">0.2%</text>
+      <text x="255" y="108" font-size="8" fill="#0e9f6e" text-anchor="middle">3.3%</text>
+
+      <!-- Q1 2022 GDPNow +0.4, BEA -1.0 | center 360 -->
+      <rect x="335" y="167" width="24" height="7" fill="#1a56db" rx="3" opacity=".85"/>
+      <rect x="363" y="174" width="24" height="18" fill="#dc2626" rx="3" opacity=".85"/>
+      <text x="360" y="247" font-size="9" fill="#374151" text-anchor="middle">Q1 2022</text>
+      <text x="347" y="161" font-size="8" fill="#1a56db" text-anchor="middle">+0.4%</text>
+      <text x="375" y="202" font-size="8" fill="#dc2626" text-anchor="middle">−1.0%</text>
+
+      <!-- Q3 2023 GDPNow +5.4, BEA +4.7 | center 480 -->
+      <rect x="455" y="77" width="24" height="97" fill="#1a56db" rx="3" opacity=".85"/>
+      <rect x="483" y="89" width="24" height="85" fill="#0e9f6e" rx="3" opacity=".85"/>
+      <text x="480" y="247" font-size="9" fill="#374151" text-anchor="middle">Q3 2023</text>
+      <text x="467" y="71" font-size="8" fill="#1a56db" text-anchor="middle">5.4%</text>
+      <text x="495" y="83" font-size="8" fill="#0e9f6e" text-anchor="middle">4.7%</text>
+
+      <!-- Q1 2025 GDPNow -2.7, BEA -0.3 — model failure highlight -->
+      <rect x="575" y="10" width="88" height="220" fill="#dc2626" rx="6" opacity=".04"/>
+      <rect x="575" y="174" width="24" height="49" fill="#dc2626" rx="3" opacity=".9"/>
+      <rect x="603" y="174" width="24" height="5" fill="#d97706" rx="3" opacity=".9"/>
+      <text x="600" y="247" font-size="9" fill="#dc2626" font-weight="700" text-anchor="middle">Q1 2025 ⚠</text>
+      <text x="587" y="232" font-size="8" fill="#dc2626" font-weight="700" text-anchor="middle">−2.7%</text>
+      <text x="615" y="172" font-size="8" fill="#d97706" text-anchor="middle">−0.3%</text>
+      <text x="630" y="20" font-size="9" fill="#dc2626" font-weight="700">Model</text>
+      <text x="630" y="31" font-size="9" fill="#dc2626" font-weight="700">failure</text>
+
+      <!-- legend -->
+      <rect x="67" y="258" width="10" height="10" fill="#1a56db" rx="2" opacity=".85"/>
+      <text x="81" y="267" font-size="10" fill="#374151">GDPNow final</text>
+      <rect x="175" y="258" width="10" height="10" fill="#0e9f6e" rx="2" opacity=".85"/>
+      <text x="189" y="267" font-size="10" fill="#374151">BEA advance (positive)</text>
+      <rect x="340" y="258" width="10" height="10" fill="#dc2626" rx="2" opacity=".85"/>
+      <text x="354" y="267" font-size="10" fill="#374151">Negative / miss</text>
+    </svg>
+    <div class="alert alert-danger" style="margin-top:10px;"><strong>Q1 2025 model failure:</strong> ~$56bn nonmonetary gold imports mis-coded as consumption collapse. GDPNow −2.7% vs BEA advance −0.3%. Atlanta Fed rebuilt the model April 30, 2025 — Warsh's task force announcement came 7 weeks later.</div>
+  </div>
+
+  <!-- 2021-23 stress test -->
+  <div class="card">
+    <h3>2021–23 stress test — all six tools</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Tool</th><th>What it showed</th><th>What happened</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr><td><strong>GDPNow</strong></td><td>Q3 2021: +0.2%; Q1 2022: +0.4%</td><td>+3.3%; −1.0%</td><td><span class="tag tag-warn">Mixed</span> — missed Delta recovery; missed contraction</td></tr>
+          <tr><td><strong>Trimmed Mean PCE</strong></td><td>Mid-2021: ~2.5–3.0% while headline PCE 4–5%</td><td>Broad-based generalised inflation</td><td><span class="tag tag-fail">Critical failure</span> — excluded real signal (used cars, energy, food) as noise; made "transitory" analytically defensible</td></tr>
+          <tr><td><strong>Median CPI</strong></td><td>Nov 2021: 3.8% vs Trimmed Mean 2.7%</td><td>Broad-based</td><td><span class="tag tag-warn">Partial</span> — earlier signal; still used to argue inflation was narrow</td></tr>
+          <tr><td><strong>ADS Index</strong></td><td>Strong expansion; Delta softness Q3 2021</td><td>Confirmed</td><td><span class="tag tag-ok">Accurate</span> — but measures activity, not prices; irrelevant to the policy error</td></tr>
+          <tr><td><strong>Chicago NFCI</strong></td><td>Loose financial conditions through 2021, mid-2022</td><td>Conditions were loose</td><td><span class="tag tag-info">Correct, unused</span> — loose NFCI during inflation surge = tightening signal; not operationalised</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="alert alert-warn"><strong>Structural exposure:</strong> The Fed's analytics suite tracks activity (GDPNow, ADS, NFCI) and smooths within a stable distribution (Trimmed Mean, Median CPI). None detect when the <em>entire price distribution shifts</em>. Trimming assumes tails are noise — that assumption fails in a generalised inflation episode.</div>
+  </div>
+
+  <!-- Adoption gap bars -->
+  <div class="chart-wrap">
+    <div class="chart-title">Adoption Gap — Why Research Stays in Working Papers</div>
+    <div class="chart-sub">Structural barriers preventing Fed research innovation from entering the FOMC policy process</div>
+    <div class="bar-list" style="margin-top:8px;">
+      <div class="bar-item">
+        <div class="bar-label"><span>Federated governance: 12 independent districts, no Board mandate</span><span style="color:#dc2626;font-weight:700;">Very High</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:95%;background:#dc2626;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>No formal integration path into Tealbook / FOMC minutes</span><span style="color:#dc2626;font-weight:700;">Very High</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:92%;background:#dc2626;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>IT infrastructure — not built for real-time data ingestion at scale</span><span style="color:#d97706;font-weight:700;">High</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:80%;background:#d97706;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>No system-wide procurement framework for private data</span><span style="color:#d97706;font-weight:700;">High</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:77%;background:#d97706;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>District incentives: academic publications, not operational pipelines</span><span style="color:#d97706;font-weight:700;">High</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:72%;background:#d97706;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>Conflict-of-interest rules (regulated firms as data vendors)</span><span style="color:#1a56db;font-weight:700;">Medium</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:60%;background:#1a56db;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>Privacy/governance for owned data (FedNow, Y-9C)</span><span style="color:#1a56db;font-weight:700;">Medium</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:54%;background:#1a56db;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-info"><strong>IFDP 1435 (Caldara, Mumtaz, Zhong — Fed Board, March 2026):</strong> A dynamic factor model with 100+ US macro/financial variables characterises asymmetric tail risk by sector — invisible in aggregate GDP or PCE but visible in the data-rich framework. Motor vehicles contract 40% in recessions; utilities less than 5%. The analytical capability exists; the adoption gap means it lives in a working paper rather than the Tealbook.</div>
+</section>
+
+<!-- ══════ S3 ══════ -->
+<section class="section" id="s3">
+  <div class="section-header">
+    <div class="section-num">3</div>
+    <div>
+      <div class="section-title">Official Statistics: A Supply-Side Degradation Story</div>
+      <div class="section-sub">The data supply the Fed depends on is degrading faster than modernisation can respond</div>
+    </div>
+  </div>
+
+  <!-- CPS response rate chart -->
+  <div class="chart-wrap">
+    <div class="chart-title">CPS Response Rate — 2013 to 2026 (~22pp Decline)</div>
+    <div class="chart-sub">Current Population Survey response rate. Source: BLS. Approx. annual values; 2020 COVID dip; 2025 government shutdown.</div>
+    <svg viewBox="0 0 700 230" width="100%">
+      <!-- grid -->
+      <line x1="65" y1="20" x2="655" y2="20" stroke="#f3f4f6"/>
+      <line x1="65" y1="57" x2="655" y2="57" stroke="#f3f4f6"/>
+      <line x1="65" y1="94" x2="655" y2="94" stroke="#f3f4f6"/>
+      <line x1="65" y1="131" x2="655" y2="131" stroke="#f3f4f6"/>
+      <line x1="65" y1="168" x2="655" y2="168" stroke="#e2e5ef" stroke-width="1.5"/>
+      <line x1="65" y1="20" x2="65" y2="168" stroke="#e2e5ef" stroke-width="1.5"/>
+      <!-- Y: 90%=20, 67%=168 → range 23pp, height 148px → 1pp=6.43px -->
+      <!-- y = 20 + (90-val)*6.43 -->
+      <text x="59" y="24" font-size="9" fill="#9ca3af" text-anchor="end">90%</text>
+      <text x="59" y="61" font-size="9" fill="#9ca3af" text-anchor="end">84%</text>
+      <text x="59" y="98" font-size="9" fill="#9ca3af" text-anchor="end">78%</text>
+      <text x="59" y="135" font-size="9" fill="#9ca3af" text-anchor="end">72%</text>
+      <text x="59" y="172" font-size="9" fill="#9ca3af" text-anchor="end">67%</text>
+
+      <!-- Data: yr 2013→x65, 2026→x655, spacing = 590/13 = 45.38 per year -->
+      <!-- vals: 90,88,87,86,84,82,80,67(COVID),78,74,71,70,68,68 -->
+      <!-- y vals: 20,33,39,45,52,58,65,149(COVID),77,103,123,129,142,142 -->
+      <!-- fill area under line -->
+      <polygon
+        points="65,168 65,20 110,33 156,39 201,45 246,52 291,58 336,65 382,149 427,77 473,103 518,123 563,129 609,142 654,142 654,168"
+        fill="#ebf0ff" opacity=".6"/>
+      <polyline
+        points="65,20 110,33 156,39 201,45 246,52 291,58 336,65 382,149 427,77 473,103 518,123 563,129 609,142 654,142"
+        fill="none" stroke="#1a56db" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <!-- COVID annotation -->
+      <line x1="382" y1="15" x2="382" y2="168" stroke="#dc2626" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="386" y="25" font-size="9" fill="#dc2626" font-weight="700">COVID</text>
+      <!-- Shutdown annotation -->
+      <line x1="563" y1="15" x2="563" y2="168" stroke="#d97706" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="567" y="25" font-size="9" fill="#d97706" font-weight="700">Shutdown</text>
+      <!-- endpoints -->
+      <circle cx="65" cy="20" r="4" fill="#0e9f6e"/>
+      <text x="69" y="14" font-size="9" fill="#0e9f6e" font-weight="700">~90%</text>
+      <circle cx="654" cy="142" r="4" fill="#dc2626"/>
+      <text x="620" y="138" font-size="9" fill="#dc2626" font-weight="700">~68%</text>
+      <!-- x axis -->
+      <text x="65" y="185" font-size="9" fill="#9ca3af" text-anchor="middle">2013</text>
+      <text x="201" y="185" font-size="9" fill="#9ca3af" text-anchor="middle">2016</text>
+      <text x="336" y="185" font-size="9" fill="#9ca3af" text-anchor="middle">2019</text>
+      <text x="473" y="185" font-size="9" fill="#9ca3af" text-anchor="middle">2022</text>
+      <text x="609" y="185" font-size="9" fill="#9ca3af" text-anchor="middle">2025</text>
+    </svg>
+    <div class="alert alert-danger" style="margin-top:10px;"><strong>~22pp decline in 13 years.</strong> One-third of the CPS target sample is not responding. Nonresponse bias is unknown and potentially systematic — the NFP and unemployment rate are measuring something different from what they claim to measure.</div>
+  </div>
+
+  <!-- NFP revision chart -->
+  <div class="chart-wrap">
+    <div class="chart-title">NFP Annual Benchmark Revisions — February Cycle</div>
+    <div class="chart-sub">BLS revises prior-March payrolls each February against QCEW (payroll tax census). Policy is made on a number later revised by hundreds of thousands.</div>
+    <svg viewBox="0 0 520 200" width="100%">
+      <!-- grid -->
+      <line x1="65" y1="20" x2="465" y2="20" stroke="#f3f4f6"/>
+      <line x1="65" y1="60" x2="465" y2="60" stroke="#f3f4f6"/>
+      <line x1="65" y1="100" x2="465" y2="100" stroke="#f3f4f6"/>
+      <line x1="65" y1="140" x2="465" y2="140" stroke="#e2e5ef" stroke-width="1.5"/>
+      <line x1="65" y1="20" x2="65" y2="140" stroke="#e2e5ef" stroke-width="1.5"/>
+      <!-- Y: 0=140, -400K=20 → 1K=0.3px -->
+      <text x="60" y="24" font-size="9" fill="#9ca3af" text-anchor="end">−400K</text>
+      <text x="60" y="64" font-size="9" fill="#9ca3af" text-anchor="end">−250K</text>
+      <text x="60" y="104" font-size="9" fill="#9ca3af" text-anchor="end">−100K</text>
+      <text x="60" y="144" font-size="9" fill="#9ca3af" text-anchor="end">0</text>
+
+      <!-- Feb 2023: -226K → y = 140-226*0.3=72.2 h=67.8 | x=110 -->
+      <rect x="95" y="72.2" width="55" height="67.8" fill="#d97706" rx="3"/>
+      <text x="122" y="64" font-size="10" fill="#d97706" font-weight="700" text-anchor="middle">−226K</text>
+      <text x="122" y="160" font-size="10" fill="#374151" text-anchor="middle">Feb 2023</text>
+
+      <!-- Feb 2024: -306K → y=140-306*0.3=48.2 h=91.8 | x=215 -->
+      <rect x="200" y="48.2" width="55" height="91.8" fill="#dc2626" rx="3"/>
+      <text x="227" y="40" font-size="10" fill="#dc2626" font-weight="700" text-anchor="middle">−306K</text>
+      <text x="227" y="160" font-size="10" fill="#374151" text-anchor="middle">Feb 2024</text>
+
+      <!-- Dec 2025: print +49K, revision -76K | x=315 -->
+      <!-- Show print bar going up, then revision going down -->
+      <rect x="305" y="125.3" width="25" height="14.7" fill="#0e9f6e" rx="2" opacity=".7"/>
+      <text x="317" y="120" font-size="9" fill="#0e9f6e" text-anchor="middle">+49K</text>
+      <rect x="333" y="117.2" width="25" height="22.8" fill="#d97706" rx="2"/>
+      <text x="346" y="112" font-size="9" fill="#d97706" text-anchor="middle">−76K</text>
+      <text x="330" y="160" font-size="10" fill="#374151" text-anchor="middle">Dec 2025</text>
+      <text x="330" y="172" font-size="9" fill="#dc2626" text-anchor="middle">(revision &gt; print)</text>
+    </svg>
+    <div class="alert alert-warn" style="margin-top:10px;"><strong>Dec 2025:</strong> Headline print was +49K; cumulative revision −76K. The revision exceeded the original signal — FOMC acted on a directionally unreliable reading.</div>
+  </div>
+
+  <div class="card-grid">
+    <div class="stat-card">
+      <div class="stat-val danger">−22%</div>
+      <div class="stat-label">BLS staffing since FY24</div>
+      <div class="stat-note">FY26 budget requests further 8% nominal cut</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val danger">5</div>
+      <div class="stat-label">Census surveys terminated</div>
+      <div class="stat-note">DOGE — JOLTS, ATUS, NLS at risk; USDA Food Security cancelled</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>OER structural lag — the mechanism and numbers</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>CPI Shelter (OER)</th><th>Zillow ZORI (market)</th><th>Policy implication</th></tr></thead>
+        <tbody>
+          <tr><td>Jan 2022</td><td>4.4% YoY</td><td>16.5% ann.</td><td>Official measure 12pp below market reality</td></tr>
+          <tr><td>Mar 2022</td><td>Still rising</td><td>ZORI peak — starts falling</td><td>Official accelerating as market turns</td></tr>
+          <tr><td>Dec 2022</td><td>8.3% YoY — official peak</td><td>7.5% YoY — declining 9 months</td><td>Official at peak, market already reversing for 9 months</td></tr>
+          <tr><td>2023</td><td>Elevated — gradual decline</td><td>Continued declining</td><td>Fed fighting shelter inflation already reversed in the real market</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:12px;color:var(--text-3);">OER surveys homeowners every 6 months; captures rents across all existing 12-month leases → 12–18 month structural lag to market-clearing rents. BLS methodology unchanged since 1983. The New Tenant Rent Index (NTRI, BLS + Cleveland Fed, 2022) extracts new-lease prices from the same microdata and leads OER by 12–18 months — but is published as supplemental only, with no formal FOMC role.</p>
+  </div>
+</section>
+
+<!-- ══════ S4 ══════ -->
+<section class="section" id="s4">
+  <div class="section-header">
+    <div class="section-num">4</div>
+    <div>
+      <div class="section-title">Central Bank Benchmarks</div>
+      <div class="section-sub">Evidence-based sweep — what peer CBs have actually done, not assumed leaders</div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>CB</th><th>Initiative</th><th>Year</th><th>Key differentiator vs. Fed</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>BOE</strong></td>
+          <td>Agent Network — 12 regional agents, scored reports (−5 to +5); IEO Data &amp; Analytics Roadmap; Enterprise Data Platform expanded 2025</td>
+          <td>Scores since 2000; roadmap Oct 2023</td>
+          <td>Qualitative intelligence is <em>scored</em> — comparable across districts and time. Published monthly. The Beige Book equivalent with quantitative output.</td>
+        </tr>
+        <tr>
+          <td><strong>RBA</strong></td>
+          <td>Business Liaison Program (50+ staff, 1,000+ contacts/yr); RDP 2025-06: LLM on earnings call transcripts → leads official surveys 4–6 weeks</td>
+          <td>Liaison 2001; LLM research 2025</td>
+          <td>Structured programme (not ad hoc); LLM now extracts quantitative signals from earnings filings routinely</td>
+        </tr>
+        <tr>
+          <td><strong>Bank of Canada</strong></td>
+          <td>Payments-based GDP nowcasting — daily LVTS retail payment flows → GDP error below 0.5pp at 2-week lag (SWP 2022-10)</td>
+          <td>2022 proof-of-concept</td>
+          <td>Owns its payments infrastructure and uses it for macro intelligence. Fed owns FedNow (~3,000 banks as of 2026) — does not use it.</td>
+        </tr>
+        <tr>
+          <td><strong>ECB</strong></td>
+          <td>Data Intelligence Service Centre (DISC) — centralised corporate data management; formal data-for-decisions initiative</td>
+          <td>Jan 2021</td>
+          <td>Board-level data governance framework for acquisition and access. Fed has no equivalent.</td>
+        </tr>
+        <tr>
+          <td><strong>BIS IFC</strong></td>
+          <td>12th biennial conference: "Statistics and beyond: new data for decision making in central banks" — IFC Bulletin 66</td>
+          <td>Aug 2024</td>
+          <td>International consensus: this is a recognised recurring question across all major CBs. Not a US-specific problem — but the Fed is uniquely behind on system-level integration.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="alert alert-info"><strong>The Fed's specific gap vs. peers:</strong> Every listed CB has either (1) a system-level data governance framework, (2) a formalised liaison scoring methodology that produces quantitative outputs, or (3) uses owned payment infrastructure for macro intelligence. The Fed has none of the three at the system level. District-level innovation exists (GDPNow, NY Nowcast) but there is no Board-level integration mandate.</div>
+</section>
+
+<!-- ══════ S5 ══════ -->
+<section class="section" id="s5">
+  <div class="section-header">
+    <div class="section-num">5</div>
+    <div>
+      <div class="section-title">Critics and Critique</div>
+      <div class="section-sub">Three distinct clusters with different sources and implications</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Cluster 1: Measurement methodology critics</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Critic</th><th>Specific critique</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Lawrence Summers</strong></td><td>2021: OER lag means shelter inflation was being understated; 40% of core CPI was misrepresented. Called it before the episode peaked.</td></tr>
+          <tr><td><strong>Bernanke &amp; Blanchard (2023 Brookings)</strong></td><td>OER lag extended the tightening cycle past what underlying market conditions warranted</td></tr>
+          <tr><td><strong>Biden CEA (2022–24)</strong></td><td>Published monthly alternative OER models — official acknowledgement that CPI was mismeasuring shelter</td></tr>
+          <tr><td><strong>Orphanides (MIT / AER 2001–02)</strong></td><td>1970s inflation errors were partly a real-time output gap mismeasurement. Connected by Mercatus to 2025 framework review.</td></tr>
+          <tr><td><strong>NBER (2025 WP)</strong></td><td>"Understanding the Lag Between CPI Shelter Inflation and Market Rents" — formalised academic consensus on OER lag</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Cluster 2: Labour market data critics</h3>
+    <p>Menzie Chinn (Econbrowser, Dec 2022) and MishTalk estimated a 979,000 cumulative NFP overstatement from birth-death model errors — later partially vindicated by the February 2024 −306,000 benchmark revision. BLS itself acknowledged "persistent and relatively large birth-death forecast errors" and modified the model in February 2026 — its first meaningful change in decades, 4+ years after the problem was documented.</p>
+  </div>
+
+  <div class="card">
+    <h3>Cluster 3: Transparency critics (Sahm, IMF F&amp;D Dec 2025)</h3>
+    <p>Claudia Sahm identified a concern structurally distinct from measurement accuracy: if the Fed uses non-public private data, <strong>markets that pay for access see what the Fed sees</strong> while outside analysts cannot verify the Fed's reasoning. Democratic accountability of monetary policy depends on the public being able to evaluate whether the Fed's analysis is sound — non-public data breaks this chain.</p>
+    <p>Precedent already exists: BLS uses private data in headline CPI (Manheim used car auction data, Airlines Reporting Corporation for airline tickets, carrier websites for wireless). Sahm's concern is about scale and governance, not the narrow existing precedent.</p>
+    <div class="alert alert-warn"><strong>Trade-off:</strong> Declining official statistics quality may create greater accuracy distortions than the transparency cost of using private data. The task force needs to weigh these explicitly — not assume one dominates.</div>
+  </div>
+
+  <div class="card">
+    <h3>Consensus vs. divergence map</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Area</th><th>Consensus</th><th>Divergence</th></tr></thead>
+        <tbody>
+          <tr><td>OER lag is real</td><td>Broad — left/right, academic/practitioner</td><td>How to fix: NTRI, PCE substitution, alternative measures</td></tr>
+          <tr><td>Birth-death model flawed at turning points</td><td>Broad</td><td>Whether it matters in normal times</td></tr>
+          <tr><td>Revisions large relative to signals</td><td>Documented</td><td>Whether fixable or inherent to survey design</td></tr>
+          <tr><td>More real-time data useful</td><td>Moderate</td><td>Which data, what governance, what replaces official series</td></tr>
+          <tr><td>Warsh task force is the right vehicle</td><td>Contested</td><td>Sahm / Employ America skeptical; structural critics more open</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ S6 ══════ -->
+<section class="section" id="s6">
+  <div class="section-header">
+    <div class="section-num">6</div>
+    <div>
+      <div class="section-title">Real-Time Data and Policy Errors</div>
+      <div class="section-sub">From Orphanides (1970s) to the 2021–23 modern analogue</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card" style="border-top:3px solid var(--text-4);">
+      <h3>1970s — Orphanides thesis</h3>
+      <p>The Great Inflation was partly a real-time data failure. Output gap estimates in the 1970s were significantly overstated — revised data showed substantially less slack than policymakers believed. Result: systematically easier policy than revised data would have prescribed.</p>
+      <p><em>Principle:</em> data mismeasurement causes policy errors, not just analytical inconvenience.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--danger);">
+      <h3>2021–23 — modern analogue</h3>
+      <p>The Fed was simultaneously (a) understating inflation because OER lagged 12–18 months, and (b) over-reading employment strength because the birth-death model overcounted job creation. Both errors pushed toward maintaining accommodation longer than conditions warranted.</p>
+      <p><em>Honest conclusion:</em> better data would not have made "transitory" impossible, but it would have made the error smaller and correctable sooner.</p>
+    </div>
+  </div>
+
+  <!-- OER vs ZORI chart -->
+  <div class="chart-wrap">
+    <div class="chart-title">OER vs. Market Rents — The 12–18 Month Lag (2021–2023)</div>
+    <div class="chart-sub">CPI OER (BLS official, red) vs. Zillow Observed Rent Index (blue dashed). Both YoY %. OER peaked 9 months after market rents.</div>
+    <svg viewBox="0 0 700 230" width="100%">
+      <!-- grid -->
+      <line x1="70" y1="30" x2="660" y2="30" stroke="#f3f4f6"/>
+      <line x1="70" y1="72" x2="660" y2="72" stroke="#f3f4f6"/>
+      <line x1="70" y1="114" x2="660" y2="114" stroke="#f3f4f6"/>
+      <line x1="70" y1="156" x2="660" y2="156" stroke="#f3f4f6"/>
+      <line x1="70" y1="198" x2="660" y2="198" stroke="#e2e5ef" stroke-width="1.5"/>
+      <line x1="70" y1="30" x2="70" y2="198" stroke="#e2e5ef" stroke-width="1.5"/>
+      <!-- Y: 0%=198, 18%=30 → 1%=9.33px | y = 198 - val*9.33 -->
+      <text x="64" y="34" font-size="9" fill="#9ca3af" text-anchor="end">18%</text>
+      <text x="64" y="76" font-size="9" fill="#9ca3af" text-anchor="end">13%</text>
+      <text x="64" y="118" font-size="9" fill="#9ca3af" text-anchor="end">9%</text>
+      <text x="64" y="160" font-size="9" fill="#9ca3af" text-anchor="end">4%</text>
+      <text x="64" y="202" font-size="9" fill="#9ca3af" text-anchor="end">0%</text>
+
+      <!-- 36 months Jan21–Dec23 → x=70 to 650, step = 580/35 = 16.57 per month -->
+      <!-- ZORI (market rents): Jan21: 6%, ramp up, peak Mar22: 17.5%, then fall to Dec23: 3.5% -->
+      <!-- OER: Jan21: 1.4%, slow rise, peak Dec22: 8.3%, slow fall -->
+      <!-- OER path approx monthly: -->
+      <polyline
+        points="70,184.9 87,183.2 103,181.5 120,179.7 136,178.0 153,175.5 169,173.0 186,170.4 202,167.8 219,163.5 235,157.5 252,150.5 268,145.3 285,140.0 301,135.5 318,131.0 334,127.5 351,124.0 367,120.5 384,117.5 400,115.0 417,113.2 433,112.0 450,111.8 466,113.3 483,116.5 499,119.7 516,122.0 532,123.5 549,122.7 565,121.9 582,122.2 598,122.5 615,123.8 631,125.0 648,126.5"
+        fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linejoin="round"/>
+
+      <!-- ZORI path: -->
+      <polyline
+        points="70,142.0 87,131.5 103,121.0 120,110.5 136,98.7 153,86.3 169,74.0 186,63.8 202,53.6 219,47.3 235,31.7 252,36.3 268,44.3 285,54.0 301,65.3 318,76.5 334,91.7 351,107.4 367,120.5 384,133.5 400,141.2 417,145.8 433,150.5 450,153.2 466,155.9 483,157.9 499,159.9 516,161.2 532,161.8 549,162.4 565,163.0 582,163.5 598,164.0 615,164.5 631,165.4 648,165.8"
+        fill="none" stroke="#1a56db" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="7,4"/>
+
+      <!-- ZORI peak -->
+      <circle cx="235" cy="31.7" r="4" fill="#1a56db"/>
+      <line x1="235" y1="26" x2="235" y2="198" stroke="#1a56db" stroke-width="1" stroke-dasharray="4,3" opacity=".4"/>
+      <text x="239" y="24" font-size="9" fill="#1a56db" font-weight="700">ZORI peak ~17.5%</text>
+      <text x="239" y="35" font-size="9" fill="#1a56db">Mar 2022</text>
+
+      <!-- OER peak -->
+      <circle cx="450" cy="111.8" r="4" fill="#dc2626"/>
+      <line x1="450" y1="26" x2="450" y2="198" stroke="#dc2626" stroke-width="1" stroke-dasharray="4,3" opacity=".4"/>
+      <text x="454" y="115" font-size="9" fill="#dc2626" font-weight="700">OER peak ~8.3%</text>
+      <text x="454" y="126" font-size="9" fill="#dc2626">Dec 2022 (+9 months)</text>
+
+      <!-- lag arrow -->
+      <line x1="235" y1="50" x2="450" y2="50" stroke="#374151" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="342" y="46" font-size="9" fill="#374151" text-anchor="middle" font-weight="600">9-month lag</text>
+      <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#374151"/></marker></defs>
+
+      <!-- x labels -->
+      <text x="70" y="215" font-size="9" fill="#9ca3af" text-anchor="middle">Jan '21</text>
+      <text x="235" y="215" font-size="9" fill="#9ca3af" text-anchor="middle">Jul '21</text>
+      <text x="400" y="215" font-size="9" fill="#9ca3af" text-anchor="middle">Jan '22</text>
+      <text x="565" y="215" font-size="9" fill="#9ca3af" text-anchor="middle">Jul '22</text>
+      <text x="648" y="215" font-size="9" fill="#9ca3af" text-anchor="middle">Dec '23</text>
+
+      <!-- legend -->
+      <line x1="72" y1="226" x2="94" y2="226" stroke="#dc2626" stroke-width="2.5"/>
+      <text x="98" y="230" font-size="10" fill="#374151">CPI OER (BLS official)</text>
+      <line x1="235" y1="226" x2="257" y2="226" stroke="#1a56db" stroke-width="2.5" stroke-dasharray="7,4"/>
+      <text x="261" y="230" font-size="10" fill="#374151">Zillow ZORI (market rents)</text>
+    </svg>
+  </div>
+
+  <div class="alert alert-info"><strong>FEDS 2024-011r1 (Brennan et al.) — monetary shock identification fragility:</strong> Different high-frequency monetary shock series, all constructed from the same narrow FOMC announcement window, can have pairwise correlations as low as <strong>0.3</strong> and agree on direction in <strong>only half of observations</strong>. Divergence is starkest at the effective lower bound (2009–2015, 2020–2022). The data quality problem is not limited to output and inflation data — it extends to the analytical tools the Fed uses to assess its own policy effects.</div>
+</section>
+
+<!-- ══════ S7 ══════ -->
+<section class="section" id="s7">
+  <div class="section-header">
+    <div class="section-num">7</div>
+    <div>
+      <div class="section-title">Prediction Markets</div>
+      <div class="section-sub">What Warsh said, the circularity problem, and the Fed's own validation research</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <h3>What Warsh said (June 17, 2026)</h3>
+      <p>He did <strong>not</strong> name Kalshi or Polymarket. He was asked by a reporter about prediction markets specifically. His response was implicit openness — "new data sources in the private sector" that are "more accurate, relevant, contemporaneous, and actionable." A Fed spokesman declined to confirm formal adoption.</p>
+    </div>
+    <div class="card">
+      <h3>Fed's own research</h3>
+      <p>A 2026 FEDS paper ("Kalshi and the Rise of Macro Markets") describes Kalshi's data as "well-behaved, responsive to news and comparable in forecasting accuracy to established benchmarks." A separate NBER paper (Jan 2026) found Kalshi maintains a "perfect forecast record" predicting Fed rate decisions — outperforming professional forecasters. The Fed's research arm was validating prediction markets before the task force.</p>
+    </div>
+  </div>
+
+  <div class="alert alert-warn">
+    <strong>The circularity problem (Warsh's own 2010 logic applies):</strong><br>
+    In 2010, Warsh warned that Fed forward guidance was destroying the information value of market prices by causing markets to reflect Fed communications rather than economic fundamentals. Prediction markets on FOMC decisions have the same problem, but worse — they have <em>only one reference point</em>.<br><br>
+    The loop: Fed observes what markets think it will do → this becomes an input to the decision → which changes what markets expect → which changes what the Fed observes. Warsh called this destructive to information quality in 2010 for bond markets. It applies with greater force to markets specifically designed to bet on the Fed's next move.<br><br>
+    <strong>Likely outcome:</strong> Noted as a monitoring complement but not formalised as a policy input. Circularity + CFTC jurisdictional questions prevent formal adoption.
+  </div>
+</section>
+
+<!-- ══════ S8 ══════ -->
+<section class="section" id="s8">
+  <div class="section-header">
+    <div class="section-num">8</div>
+    <div>
+      <div class="section-title">Beige Book Reform History</div>
+      <div class="section-sub">56 years, one substantive format change — and the NLP case for why it must end</div>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-date">May 26, 1970</div>
+      <div class="tl-text">First edition under Arthur Burns. Original name: "Red Book." Replaced oral district reports with written summary.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-date">February 1983</div>
+      <div class="tl-text">Made public following Congressional request (Rep. Fauntroy). Renamed "Beige Book" from its cover colour.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot ok"></div>
+      <div class="tl-date">2016 / 2017</div>
+      <div class="tl-text"><strong>Only substantive format reform in 56 years:</strong> standardised three core topics across all districts. Enhanced national summary. Still qualitative prose — no scoring or quantification.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot warn"></div>
+      <div class="tl-date">2024–2026</div>
+      <div class="tl-text">LLM-based sentiment analysis explored in academic research (ACM ICAIF 2024; Cleveland Fed recession model Nov 2025; <strong>FEDS 2026-004</strong>). None are internal Fed initiatives.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h3>FEDS 2026-004 — "Do Anecdotes Matter?" (55-year NLP study)</h3>
+    <p>Machine learning including topic modelling and NLP sentiment analysis across the full 1970–2025 corpus. Key findings:</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Finding</th><th>Implication</th></tr></thead>
+        <tbody>
+          <tr><td>Beige Book sentiment is a statistically significant predictor of GDP growth</td><td>The book contains real economic information — not only colour</td></tr>
+          <tr><td>Predictive power <strong>exceeds the yield spread</strong> for recession forecasting</td><td>Soft intelligence from 300+ contacts outperforms financial market signals</td></tr>
+          <tr><td>Large regional heterogeneity across districts</td><td>Cross-district comparison is currently impossible without NLP scoring</td></tr>
+          <tr><td>ML + Beige Book text outperforms hard-data-only models</td><td>The signal is latent in unstructured prose; scoring makes it explicit</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="alert alert-ok"><strong>Reform case:</strong> The Beige Book contains more information than its format allows policymakers to extract. BOE-style −5 to +5 scoring on standardised dimensions would extract it without changing the underlying data collection. This is the most achievable near-term reform — low cost, immediate, no new procurement.</div>
+  </div>
+
+  <div class="card">
+    <h3>Why 56 years of inertia — the political economy</h3>
+    <div class="bar-list">
+      <div class="bar-item">
+        <div class="bar-label"><span>Political function: each district has a published stake before FOMC</span><span style="color:#dc2626;">Very High</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:90%;background:#dc2626;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>Scoring creates accountability — interpretive flexibility lost</span><span style="color:#d97706;">High</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:82%;background:#d97706;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>No prior chair-level mandate for reform</span><span style="color:#d97706;">High</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:78%;background:#d97706;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>Technical NLP complexity</span><span style="color:#0e9f6e;">Low</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:22%;background:#0e9f6e;"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ S9 ══════ -->
+<section class="section" id="s9">
+  <div class="section-header">
+    <div class="section-num">9</div>
+    <div>
+      <div class="section-title">How Could the Fed Collect Data Better?</div>
+      <div class="section-sub">Four-domain taxonomy: owned data / administrative access / private procurement / new methodology</div>
+    </div>
+  </div>
+
+  <!-- 4-quadrant readiness diagram -->
+  <div class="chart-wrap">
+    <div class="chart-title">Data Source Readiness vs. Information Value</div>
+    <div class="chart-sub">Bubble position = readiness (x) and information value (y). Timeline to deployment noted inside each bubble.</div>
+    <svg viewBox="0 0 680 330" width="100%">
+      <!-- background quadrants -->
+      <rect x="40" y="20" width="300" height="145" fill="#fee2e2" rx="4" opacity=".25"/>
+      <rect x="340" y="20" width="300" height="145" fill="#e8f8f2" rx="4" opacity=".25"/>
+      <rect x="40" y="165" width="300" height="145" fill="#fef3c7" rx="4" opacity=".25"/>
+      <rect x="340" y="165" width="300" height="145" fill="#ebf0ff" rx="4" opacity=".25"/>
+      <!-- quadrant labels -->
+      <text x="190" y="40" font-size="11" fill="#dc2626" text-anchor="middle" opacity=".7" font-weight="600">Needs inter-agency deal</text>
+      <text x="490" y="40" font-size="11" fill="#0e9f6e" text-anchor="middle" opacity=".7" font-weight="600">High readiness</text>
+      <text x="190" y="185" font-size="11" fill="#d97706" text-anchor="middle" opacity=".7" font-weight="600">Procurement needed</text>
+      <text x="490" y="185" font-size="11" fill="#1a56db" text-anchor="middle" opacity=".7" font-weight="600">Owned / public data</text>
+      <!-- axes -->
+      <line x1="340" y1="20" x2="340" y2="310" stroke="#e2e5ef" stroke-width="1.5"/>
+      <line x1="40" y1="165" x2="640" y2="165" stroke="#e2e5ef" stroke-width="1.5"/>
+      <text x="340" y="318" font-size="10" fill="#6b7280" text-anchor="middle">→ Readiness / speed to deploy</text>
+      <text x="28" y="165" font-size="10" fill="#6b7280" text-anchor="middle" transform="rotate(-90,28,165)">↑ Value</text>
+
+      <!-- Bubbles -->
+      <!-- NTRI: high value, high readiness (already published) → x=570, y=60 -->
+      <circle cx="565" cy="65" r="24" fill="#0e9f6e" opacity=".2" stroke="#0e9f6e" stroke-width="1.5"/>
+      <text cx="565" cy="65" x="565" y="62" font-size="10" fill="#0e9f6e" font-weight="700" text-anchor="middle">NTRI</text>
+      <text x="565" y="74" font-size="9" fill="#0e9f6e" text-anchor="middle">Now</text>
+
+      <!-- Beige NLP: high value, high readiness → x=590, y=95 -->
+      <circle cx="590" cy="100" r="22" fill="#0e9f6e" opacity=".2" stroke="#0e9f6e" stroke-width="1.5"/>
+      <text x="590" y="97" font-size="9" fill="#0e9f6e" font-weight="700" text-anchor="middle">Beige NLP</text>
+      <text x="590" y="108" font-size="9" fill="#0e9f6e" text-anchor="middle">6–12 mo</text>
+
+      <!-- FedNow: high value, medium readiness → x=450, y=65 -->
+      <circle cx="445" cy="70" r="26" fill="#1a56db" opacity=".15" stroke="#1a56db" stroke-width="1.5"/>
+      <text x="445" y="67" font-size="10" fill="#1a56db" font-weight="700" text-anchor="middle">FedNow</text>
+      <text x="445" y="79" font-size="9" fill="#1a56db" text-anchor="middle">2–3 yrs</text>
+
+      <!-- LLM 10-Q: high value, medium readiness → x=400, y=90 -->
+      <circle cx="395" cy="98" r="21" fill="#1a56db" opacity=".15" stroke="#1a56db" stroke-width="1.5"/>
+      <text x="395" y="95" font-size="9" fill="#1a56db" font-weight="700" text-anchor="middle">LLM 10-Q</text>
+      <text x="395" y="107" font-size="9" fill="#1a56db" text-anchor="middle">1–2 yrs</text>
+
+      <!-- Cavallo daily: medium value, medium readiness → x=490, y=140 -->
+      <circle cx="490" cy="142" r="19" fill="#d97706" opacity=".15" stroke="#d97706" stroke-width="1.5"/>
+      <text x="490" y="139" font-size="9" fill="#d97706" font-weight="700" text-anchor="middle">Daily prices</text>
+      <text x="490" y="151" font-size="9" fill="#d97706" text-anchor="middle">1–2 yrs</text>
+
+      <!-- ADP microdata: medium value, medium-high readiness → x=530, y=195 -->
+      <circle cx="530" cy="195" r="19" fill="#d97706" opacity=".15" stroke="#d97706" stroke-width="1.5"/>
+      <text x="530" y="192" font-size="9" fill="#d97706" font-weight="700" text-anchor="middle">ADP micro</text>
+      <text x="530" y="204" font-size="9" fill="#d97706" text-anchor="middle">2–3 yrs</text>
+
+      <!-- EIN filings: high value, needs IRS deal → x=240, y=60 -->
+      <circle cx="240" cy="65" r="22" fill="#dc2626" opacity=".12" stroke="#dc2626" stroke-width="1.5"/>
+      <text x="240" y="62" font-size="9" fill="#dc2626" font-weight="700" text-anchor="middle">EIN filings</text>
+      <text x="240" y="74" font-size="9" fill="#dc2626" text-anchor="middle">3–5 yrs</text>
+
+      <!-- SSA wages: high value, needs inter-agency → x=170, y=55 -->
+      <circle cx="165" cy="60" r="22" fill="#dc2626" opacity=".12" stroke="#dc2626" stroke-width="1.5"/>
+      <text x="165" y="57" font-size="9" fill="#dc2626" font-weight="700" text-anchor="middle">SSA wages</text>
+      <text x="165" y="69" font-size="9" fill="#dc2626" text-anchor="middle">3–5 yrs</text>
+
+      <!-- CBP customs: medium, inter-agency → x=150, y=110 -->
+      <circle cx="150" cy="115" r="17" fill="#dc2626" opacity=".12" stroke="#dc2626" stroke-width="1.5"/>
+      <text x="150" y="112" font-size="9" fill="#dc2626" font-weight="700" text-anchor="middle">CBP customs</text>
+      <text x="150" y="124" font-size="9" fill="#dc2626" text-anchor="middle">3–5 yrs</text>
+
+      <!-- Chicago UE nowcast: early stage, medium value → x=200, y=230 -->
+      <circle cx="200" cy="235" r="18" fill="#6b7280" opacity=".15" stroke="#6b7280" stroke-width="1.5"/>
+      <text x="200" y="230" font-size="8" fill="#6b7280" font-weight="700" text-anchor="middle">Chicago UE</text>
+      <text x="200" y="241" font-size="8" fill="#6b7280" text-anchor="middle">nowcast</text>
+      <text x="200" y="253" font-size="8" fill="#6b7280" text-anchor="middle">Early stage</text>
+
+      <!-- Indeed postings: medium, good readiness → x=430, y="210" -->
+      <circle cx="420" cy="215" r="17" fill="#1a56db" opacity=".15" stroke="#1a56db" stroke-width="1.5"/>
+      <text x="420" y="212" font-size="8" fill="#1a56db" font-weight="700" text-anchor="middle">Indeed jobs</text>
+      <text x="420" y="224" font-size="8" fill="#1a56db" text-anchor="middle">1–2 yrs</text>
+    </svg>
+  </div>
+
+  <div class="card">
+    <h3>Domain-by-domain summary</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Domain</th><th>Best near-term option</th><th>Lead time advantage</th><th>Key barrier</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Housing / OER</strong></td><td>NTRI as official CPI shelter component</td><td>12–18 months over OER</td><td>BLS political will; OER methodology unchanged since 1983</td></tr>
+          <tr><td><strong>Employment</strong></td><td>Weekly EIN tax filings (IRS) → birth-death replacement</td><td>Real-time vs. 12–24 month ARIMA lag</td><td>IRS inter-agency data-sharing agreement</td></tr>
+          <tr><td><strong>Activity / GDP</strong></td><td>FedNow payment flows</td><td>Near-daily vs. 30-day BEA lag</td><td>PII governance framework; 2–3 year buildout</td></tr>
+          <tr><td><strong>Prices (tariff pass-through)</strong></td><td>Cavallo Harvard daily index (350K goods, country of origin)</td><td>Daily vs. monthly CPI</td><td>Data acquisition agreement; DOGE has slowed BLS piloting</td></tr>
+          <tr><td><strong>Business conditions</strong></td><td>LLM on 10-Q earnings calls (RBA model); NLP on Beige Book</td><td>4–6 weeks over official surveys</td><td>NLP infrastructure buildout; Beige Book: political</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ S10 ══════ -->
+<section class="section" id="s10">
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <div>
+      <div class="section-title">Is This a Perennial Question?</div>
+      <div class="section-sub">Every major shock triggers a CB data review — and produces less change than it should</div>
+    </div>
+  </div>
+
+  <!-- Changes-by-shock chart -->
+  <div class="chart-wrap">
+    <div class="chart-title">What Actually Changed After Each Major Shock</div>
+    <div class="chart-sub">Financial data vs. macroeconomic statistics. The pattern: 2008 reformed financial data; macroeconomic statistics remained essentially untouched until 2026.</div>
+    <svg viewBox="0 0 680 180" width="100%">
+      <!-- Timeline bar -->
+      <line x1="60" y1="90" x2="620" y2="90" stroke="#e2e5ef" stroke-width="3"/>
+      <!-- Shock markers -->
+      <!-- 2008 GFC: x=120 -->
+      <circle cx="120" cy="90" r="10" fill="#dc2626" stroke="#fff" stroke-width="2"/>
+      <text x="120" y="70" font-size="10" fill="#dc2626" font-weight="700" text-anchor="middle">2008</text>
+      <text x="120" y="58" font-size="9" fill="#374151" text-anchor="middle">GFC</text>
+      <text x="120" y="115" font-size="9" fill="#0e9f6e" text-anchor="middle" font-weight="600">Financial</text>
+      <text x="120" y="127" font-size="9" fill="#0e9f6e" text-anchor="middle">data ✓</text>
+      <text x="120" y="141" font-size="9" fill="#dc2626" text-anchor="middle">Macro stats ✗</text>
+
+      <!-- 2020 COVID: x=260 -->
+      <circle cx="260" cy="90" r="10" fill="#d97706" stroke="#fff" stroke-width="2"/>
+      <text x="260" y="70" font-size="10" fill="#d97706" font-weight="700" text-anchor="middle">2020</text>
+      <text x="260" y="58" font-size="9" fill="#374151" text-anchor="middle">COVID</text>
+      <text x="260" y="115" font-size="9" fill="#d97706" text-anchor="middle" font-weight="600">Some tools</text>
+      <text x="260" y="127" font-size="9" fill="#d97706" text-anchor="middle">elevated</text>
+      <text x="260" y="141" font-size="9" fill="#dc2626" text-anchor="middle">OER/BD unchanged</text>
+
+      <!-- 2021-23 inflation: x=380 -->
+      <circle cx="380" cy="90" r="10" fill="#d97706" stroke="#fff" stroke-width="2"/>
+      <text x="380" y="70" font-size="10" fill="#d97706" font-weight="700" text-anchor="middle">2021–23</text>
+      <text x="380" y="58" font-size="9" fill="#374151" text-anchor="middle">Inflation</text>
+      <text x="380" y="115" font-size="9" fill="#d97706" text-anchor="middle" font-weight="600">NTRI published</text>
+      <text x="380" y="127" font-size="9" fill="#d97706" text-anchor="middle">2022</text>
+      <text x="380" y="141" font-size="9" fill="#dc2626" text-anchor="middle">Supplemental only</text>
+
+      <!-- 2025 GDPNow: x=500 -->
+      <circle cx="500" cy="90" r="10" fill="#1a56db" stroke="#fff" stroke-width="2"/>
+      <text x="500" y="70" font-size="10" fill="#1a56db" font-weight="700" text-anchor="middle">2025</text>
+      <text x="500" y="58" font-size="9" fill="#374151" text-anchor="middle">GDPNow fail</text>
+      <text x="500" y="115" font-size="9" fill="#0e9f6e" text-anchor="middle" font-weight="600">BD model</text>
+      <text x="500" y="127" font-size="9" fill="#0e9f6e" text-anchor="middle">revised Feb 2026</text>
+      <text x="500" y="141" font-size="9" fill="#1a56db" text-anchor="middle">Task force ← now</text>
+
+      <!-- "now" arrow -->
+      <text x="600" y="87" font-size="11" fill="#1a56db" font-weight="700">Now ►</text>
+    </svg>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Shock</th><th>What changed</th><th>What didn't change</th></tr></thead>
+      <tbody>
+        <tr><td>2008 GFC</td><td>DTCC, LEI, Form PF, Z.1 expansion — substantial financial data reforms</td><td>Zero changes to BLS/BEA macroeconomic statistics. G20 Data Gaps Initiative's 20 recommendations — none addressed labour market or price measurement.</td></tr>
+        <tr><td>2020 COVID</td><td>GDPNow elevated to market standard; NY WEI; SF Daily News Sentiment; NTRI published 2022; CPS modernisation plan 2023</td><td>OER methodology unchanged; birth-death model unchanged (until Feb 2026); NTRI supplemental only; CPS still in field-test phase</td></tr>
+        <tr><td>2021–23 inflation</td><td>NTRI; NBER working papers on OER lag; Biden CEA monthly alternative models</td><td>NTRI supplemental only; OER unchanged; response rate decline continues</td></tr>
+        <tr><td>2025 gold/GDPNow</td><td>GDPNow model rebuilt April 2025; birth-death revision Feb 2026</td><td>No system-level response until Warsh task force</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>What makes Warsh's task force different</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Dimension</th><th>Prior CB reviews</th><th>Warsh task force</th></tr></thead>
+        <tbody>
+          <tr><td>Focus</td><td>Methodology / financial data</td><td>Sourcing — explicitly about replacing official statistics with better inputs</td></tr>
+          <tr><td>Comparison class</td><td>Academic forecasting literature</td><td>"Private company CEO management information system"</td></tr>
+          <tr><td>Context</td><td>Stable or growing official stats capacity</td><td>Simultaneous DOGE-driven degradation, terminated surveys, response rate collapse</td></tr>
+          <tr><td>Authority</td><td>Technical review</td><td>Chair-level mandate — can impose system-wide change across all 12 districts</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="alert alert-warn"><strong>The structural constraint:</strong> Central banks are the primary consumers of official statistics but have no authority over their production. BLS and BEA are executive branch agencies under OMB. The Fed cannot force BLS to fix OER, modernise the birth-death model, or restore survey staffing. It can only adapt. This demand-supply misalignment is structural and permanent — which is why every major CB periodically asks the same question without definitively resolving it.</div>
+</section>
+
+<!-- ══════ S11 ══════ -->
+<section class="section" id="s11">
+  <div class="section-header">
+    <div class="section-num">11</div>
+    <div>
+      <div class="section-title">Grand Principles</div>
+      <div class="section-sub">Five consistent themes from Warsh's views, institutional constraints, and international benchmarks</div>
+    </div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card" style="border-left:4px solid #1a56db;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#1a56db;margin-bottom:6px;">P1</div>
+      <h3 style="color:#1a56db;margin-top:0;">Market / Private &gt; Government Survey</h3>
+      <p>Real transactions, market prices, and firm-level data are epistemically superior to survey responses. This is a philosophy of knowledge, not a statistical claim. Official surveys ask what people think; private sector data records what they do.</p>
+    </div>
+    <div class="card" style="border-left:4px solid #1a56db;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#1a56db;margin-bottom:6px;">P2</div>
+      <h3 style="color:#1a56db;margin-top:0;">Real-time &gt; Historical</h3>
+      <p>"An echo of history." Data arriving 6 weeks after the reference period is not operationally data-dependent. A policymaker who reacts to heavily revised 6-week-old data is not meaningfully responsive to economic conditions.</p>
+    </div>
+    <div class="card" style="border-left:4px solid #1a56db;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#1a56db;margin-bottom:6px;">P3</div>
+      <h3 style="color:#1a56db;margin-top:0;">Actionable &gt; Academic</h3>
+      <p>"Perhaps most important actionable." The CEO's MIS is the comparison class, not a FEDS working paper. What do we need to know to make a better decision at the <em>next</em> FOMC meeting?</p>
+    </div>
+    <div class="card" style="border-left:4px solid #d97706;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#d97706;margin-bottom:6px;">P4</div>
+      <h3 style="color:#d97706;margin-top:0;">The Adoption Gap is the Problem</h3>
+      <p>GDPNow, the NY Nowcast, the COVID pivot — the capacity exists. The gap is policy-process translation: research outputs that live in working papers and public websites, not the Tealbook. More research without process change leaves the problem untouched.</p>
+    </div>
+    <div class="card" style="border-left:4px solid #dc2626;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#dc2626;margin-bottom:6px;">P5</div>
+      <h3 style="color:#dc2626;margin-top:0;">Revisions are a Credibility Problem</h3>
+      <p>When the Fed reacts to a payroll print later revised by more than the original signal, "data-dependent" communication is undermined in markets and Congress. The revision problem is institutional credibility, not just measurement accuracy.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ S12 ══════ -->
+<section class="section" id="s12">
+  <div class="section-header">
+    <div class="section-num">12</div>
+    <div>
+      <div class="section-title">What the Task Force Is Likely to Find</div>
+      <div class="section-sub">Three confidence tiers — evidence strength × institutional feasibility × political constraints</div>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-title">Task Force Finding Confidence Assessment</div>
+    <div class="chart-sub">Confidence based on evidence quality, institutional feasibility, and political risk. Not a probability model — an assessment framework.</div>
+    <div class="bar-list" style="margin-top:12px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#0e9f6e;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">HIGH CONFIDENCE — Structural problems with clear evidence</div>
+      <div class="bar-item">
+        <div class="bar-label"><span>CPS response rate decline is real, secular, will worsen under current trajectory</span><span style="color:#0e9f6e;font-weight:700;">92%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:92%;background:#0e9f6e;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>FOMC policy process structurally disconnected from Fed research innovation</span><span style="color:#0e9f6e;font-weight:700;">90%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:90%;background:#0e9f6e;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>Beige Book NLP upgrade recommended — lowest cost, highest precedent (FEDS 2026-004)</span><span style="color:#0e9f6e;font-weight:700;">85%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:85%;background:#0e9f6e;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>LLM on earnings call transcripts (RBA model) recommended for NY Fed</span><span style="color:#0e9f6e;font-weight:700;">80%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:80%;background:#0e9f6e;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>FedNow data governance framework flagged as internal owned opportunity</span><span style="color:#0e9f6e;font-weight:700;">75%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:75%;background:#0e9f6e;"></div></div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#d97706;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border);">MEDIUM CONFIDENCE — Depends on internal politics and mandate scope</div>
+      <div class="bar-item">
+        <div class="bar-label"><span>System-wide private data procurement framework identified as need</span><span style="color:#d97706;font-weight:700;">65%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:65%;background:#d97706;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>Prediction markets noted as monitoring tool — not formalised as policy input</span><span style="color:#d97706;font-weight:700;">63%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:63%;background:#d97706;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>Cross-district data infrastructure recommended in principle</span><span style="color:#d97706;font-weight:700;">55%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:55%;background:#d97706;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>NTRI formally elevated toward headline CPI shelter component</span><span style="color:#d97706;font-weight:700;">40%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:40%;background:#d97706;"></div></div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#dc2626;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border);">LOWER CONFIDENCE — Politically sensitive or outside Fed authority</div>
+      <div class="bar-item">
+        <div class="bar-label"><span>Explicit finding that DOGE/budget cuts degrade the Fed's data supply</span><span style="color:#dc2626;font-weight:700;">25%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:25%;background:#dc2626;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>Recommendations requiring new legislative authority</span><span style="color:#dc2626;font-weight:700;">15%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:15%;background:#dc2626;"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>Formal recommendation that OER be replaced in headline CPI (BLS authority only)</span><span style="color:#dc2626;font-weight:700;">10%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:10%;background:#dc2626;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>The counterfactual risk — what happens if the task force underdelivers</h3>
+    <p>If the task force recommends only incremental changes (better Beige Book format, prediction markets as a monitoring tool), the underlying supply-side degradation of official statistics continues unaddressed. The Fed would be improving its adaptation to a shrinking data supply without addressing the supply itself — or creating the inter-agency agreements (IRS, SSA) that would provide genuinely new information.</p>
+    <div class="alert alert-warn"><strong>Structural ceiling:</strong> The maximum achievable outcome is: (1) improve use of what already exists, (2) acquire private data as a supplement, and (3) publish enough evidence to give Congress and OMB political cover to increase statistical agency funding. Whether (3) happens depends on whether the task force is willing to say explicitly what the DOGE cuts are doing to the Fed's data supply.</div>
+  </div>
+</section>
+
+</div><!-- /content -->
+</main>
+
+<script>
+const sections = document.querySelectorAll('.section');
+const navLinks = document.querySelectorAll('nav a');
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(l => l.classList.remove('active'));
+      const link = document.querySelector(`nav a[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -75% 0px', threshold: 0 });
+sections.forEach(s => io.observe(s));
+</script>
+</body>
+</html>
