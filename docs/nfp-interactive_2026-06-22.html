@@ -161,6 +161,7 @@
     <a class="tab-link" data-tab="skepticism" href="#">Restatement</a>
     <a class="tab-link" data-tab="report" href="#">Full Report</a>
     <a class="tab-link" data-tab="vintage" href="#">Vintage Revisions</a>
+    <a class="tab-link" data-tab="jolts-ind" href="#">JOLTS by Industry ★</a>
   </div>
 
   <!-- Section 1: NFP YTD -->
@@ -273,6 +274,59 @@
           Gap = NFP monthly avg minus JOLTS implied net (Hires − Separations) monthly avg. Positive = NFP printing above JOLTS flows.
         </p>
       </div>
+    </div>
+
+    <!-- Convergence proof: Initial NFP vs JOLTS vs Revised NFP -->
+    <div class="card" style="margin-bottom:16px;">
+      <h2>The Convergence Case: Initial NFP Was Wrong — JOLTS Was Right</h2>
+      <p style="font-size:0.8rem;color:var(--muted);margin-bottom:12px;">Each benchmark revision closed nearly all of the initial NFP→JOLTS gap. JOLTS didn't move — NFP did. Source: BLS vintage revisions file (nfp_vintage_revisions.xlsx) + BLS JOLTS SA series.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th class="num">NFP 1st Print avg/mo<br><span style="font-weight:400;font-size:0.72rem">(Jan–May)</span></th>
+            <th class="num">JOLTS Implied avg/mo*<br><span style="font-weight:400;font-size:0.72rem">(current vintage)</span></th>
+            <th class="num">Pre-Rev Gap</th>
+            <th class="num">NFP Post-Benchmark avg/mo</th>
+            <th class="num">Post-Rev Gap</th>
+            <th>Outcome</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2024</td>
+            <td class="num pos">+276k <span style="color:var(--muted);font-size:0.75rem">(+1,378k sum)</span></td>
+            <td class="num">+137k</td>
+            <td class="num neg"><strong>−139k</strong></td>
+            <td class="num pos">+150k</td>
+            <td class="num">−13k</td>
+            <td><span class="gap-signal gap-down">Revised −574k · Gap closed 91%</span></td>
+          </tr>
+          <tr>
+            <td>2025</td>
+            <td class="num pos">+168k <span style="color:var(--muted);font-size:0.75rem">(+838k sum)</span></td>
+            <td class="num">+31k</td>
+            <td class="num neg"><strong>−137k</strong></td>
+            <td class="num pos">+36k</td>
+            <td class="num">−5k</td>
+            <td><span class="gap-signal gap-down">Revised −656k · Gap closed 96%</span></td>
+          </tr>
+          <tr class="hi">
+            <td><strong>2026 (P)</strong></td>
+            <td class="num pos"><strong>+114k</strong> <span style="color:var(--muted);font-size:0.75rem">(+569k sum)</span></td>
+            <td class="num"><strong>+94k</strong> <span style="color:var(--muted);font-size:0.75rem">(4mo)</span></td>
+            <td class="num"><strong>−20k</strong></td>
+            <td class="num" style="color:var(--muted)">TBD Jan 2027</td>
+            <td class="num" style="color:var(--muted)">—</td>
+            <td><span class="gap-signal gap-down">Pattern: expect downward revision</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.75rem;color:var(--muted);margin-top:10px;">
+        * JOLTS implied net = Hires − Total Separations, Jan–May avg (current June 2026 vintage). JOLTS also revised annually but historically ±10–30k vs hundreds of thousands for CES.
+        2024 true 1st prints: Jan 353k, Feb 275k, Mar 303k, Apr 175k, May 272k = 1,378k ÷ 5 = 276k/mo. Source: BLS vintage records.
+        2025 1st prints: Jan 143k, Feb 151k, Mar 228k, Apr 177k, May 139k = 838k ÷ 5 = 168k/mo.
+      </p>
     </div>
 
     <div class="grid2">
@@ -887,8 +941,79 @@
     </div>
   </div>
 
+  <!-- JOLTS by Industry Tab -->
+  <div class="section tab-panel" id="jolts-ind">
+    <div class="insight yellow">
+      <div class="title">JOLTS Implied Net (Hires − Total Separations) by Industry — BLS SA, pulled 2026-06-26 via BLS API v2</div>
+      <p>This measures actual flow-based net employment change from JOLTS, independent of the CES Birth-Death model.
+      Where NFP 2026 avg/mo is materially above JOLTS net, the sector is at elevated revision risk.
+      <strong>New finding: Trade/Trans/Util has the largest NFP–JOLTS gap (+17.4k) of any sector in 2026 — larger than L&amp;H or PBS.</strong>
+      Government quits/separations not published by BLS. JOLTS through April 2026 only.</p>
+    </div>
+
+    <!-- NFP vs JOLTS net gap by sector -->
+    <div class="card" style="margin-bottom:16px;">
+      <h2>NFP 2026 YTD avg/mo vs JOLTS Implied Net — Sector Gap (NEW — added 2026-06-26)</h2>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;">
+        NFP avg/mo = 5-month sum ÷ 5 (Jan–May 2026 initial prints). JOLTS Net = Hires − Total Separations, Jan–Apr 2026 avg.
+        Positive gap = NFP printing above JOLTS flows → elevated revision risk. Source: BLS JOLTS API v2 (series JTS…HIL, JTS…TSL).
+      </p>
+      <table id="joltsGapTable22">
+        <thead>
+          <tr>
+            <th>Industry</th>
+            <th class="num">NFP 2026 avg/mo (k)</th>
+            <th class="num">JOLTS Hires avg/mo (k)</th>
+            <th class="num">JOLTS Total Sep avg/mo (k)</th>
+            <th class="num">JOLTS Net avg/mo (k)</th>
+            <th class="num">Gap: NFP − JOLTS (k)</th>
+            <th>Signal</th>
+          </tr>
+        </thead>
+        <tbody id="joltsGapBody22"></tbody>
+      </table>
+    </div>
+
+    <!-- Full JOLTS industry flows table -->
+    <div class="card" style="margin-bottom:16px;">
+      <h2>JOLTS Hires, Quits, Layoffs, Total Sep by Industry — Monthly Average (k, SA)</h2>
+      <div style="overflow-x:auto;">
+      <table style="min-width:900px;">
+        <thead>
+          <tr>
+            <th>Industry</th>
+            <th class="num">Metric</th>
+            <th class="num">YTD 2024<br><span style="font-weight:400;font-size:0.72rem">(Jan–May)</span></th>
+            <th class="num">Full 2024</th>
+            <th class="num">YTD 2025<br><span style="font-weight:400;font-size:0.72rem">(Jan–May)</span></th>
+            <th class="num">Full 2025</th>
+            <th class="num">YTD 2026<br><span style="font-weight:400;font-size:0.72rem">(Jan–Apr)</span></th>
+            <th class="num">YoY<br><span style="font-weight:400;font-size:0.72rem">(2025→2026 YTD)</span></th>
+          </tr>
+        </thead>
+        <tbody id="joltsIndBody22"></tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="card">
+      <h2>JOLTS Hires &amp; Total Separations by Industry — YTD Average (k, SA)</h2>
+      <div class="chart-wrap" style="height:360px;">
+        <canvas id="joltsIndChart22"></canvas>
+      </div>
+      <div class="label-row" style="margin-top:10px;">
+        <span><span class="dot" style="background:#22c55e"></span>YTD 2024 Hires</span>
+        <span><span class="dot" style="background:#f59e0b"></span>YTD 2025 Hires</span>
+        <span><span class="dot" style="background:#ef4444"></span>YTD 2026 Hires</span>
+        <span style="color:var(--muted);font-size:0.78rem">Separations shown as lighter bars</span>
+      </div>
+      <p style="font-size:0.75rem;color:var(--muted);margin-top:8px;">Source: BLS JOLTS SA series (BLS API v2, pulled 2026-06-26). Download: <em>jolts_by_industry_2026-06-26.xlsx</em> (output/research/nfp-deep-dive/). Government separations not published by BLS.</p>
+    </div>
+  </div>
+
   <div style="color:var(--muted);font-size:0.75rem;border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
-    Sources: BLS CES SA series + BLS JOLTS SA series (downloaded 2026-06-15) · BLS benchmark release 2025-09 and 2026-02 · Econbrowser, WolfStreet, CRS, FXStreet
+    Sources: BLS CES SA series + BLS JOLTS SA series (downloaded 2026-06-15; JOLTS by industry 2026-06-26 via BLS API v2) · BLS benchmark release 2025-09 and 2026-02 · Econbrowser, WolfStreet, CRS, FXStreet · nfp_vintage_revisions.xlsx (SHK)
   </div>
 
 </div>
@@ -1820,6 +1945,116 @@ new Chart(document.getElementById('jobQualityChart'), {
       this.classList.add('active');
       document.getElementById(target).style.display = 'block';
     });
+  });
+})();
+
+// ─── JOLTS BY INDUSTRY DATA (pulled 2026-06-26 via BLS API v2) ───────────────
+const joltsIndData22 = {
+  industries: ['Construction','Ed & Health Svcs','Leisure & Hospitality','Manufacturing','Prof & Business Svcs','Trade/Trans/Util','Government'],
+  // [YTD2024, Full2024, YTD2025, Full2025, YTD2026]
+  data: {
+    'Construction':         { Hires:[361.8,341.4,334.8,332.0,321.2], Quits:[159.4,144.7,162.2,145.4,136.8], Layoffs:[176.0,164.3,166.0,172.8,147.5], TotalSep:[350.4,326.4,342.6,332.2,301.0] },
+    'Ed & Health Svcs':     { Hires:[866.0,853.3,807.8,814.8,763.0], Quits:[564.2,544.7,522.2,523.9,496.0], Layoffs:[177.0,180.8,182.4,191.5,184.5], TotalSep:[784.0,768.5,746.4,755.5,716.5] },
+    'Leisure & Hospitality':{ Hires:[987.8,939.9,920.6,952.4,988.8], Quits:[696.2,659.5,660.4,663.8,668.8], Layoffs:[272.8,253.0,243.2,252.9,283.2], TotalSep:[992.2,934.9,928.8,937.2,973.2] },
+    'Manufacturing':        { Hires:[344.8,330.4,305.2,298.1,290.0], Quits:[211.8,206.7,176.4,175.0,163.8], Layoffs:[122.6,118.3,116.0,113.6,100.8], TotalSep:[355.6,346.2,313.4,307.4,283.2] },
+    'Prof & Business Svcs': { Hires:[1033.6,984.4,1039.2,1020.4,979.8], Quits:[556.0,543.4,554.0,524.3,451.2], Layoffs:[389.4,395.5,437.0,458.4,462.2], TotalSep:[1017.8,994.0,1035.6,1033.4,968.8] },
+    'Trade/Trans/Util':     { Hires:[1053.4,1045.3,1015.6,993.7,1061.0], Quits:[691.4,668.0,647.0,640.9,682.0], Layoffs:[290.2,328.7,338.6,328.2,317.5], TotalSep:[1048.8,1048.2,1030.8,1010.9,1059.8] },
+    'Government':           { Hires:[383.0,366.8,341.8,326.8,323.0], Quits:[null,null,null,null,null], Layoffs:[null,null,null,null,null], TotalSep:[null,null,null,null,null] },
+  },
+  nfp2026avg: { 'Leisure & Hospitality':23.6, 'Prof & Business Svcs':19.2, 'Ed & Health Svcs':51.8, 'Construction':13.0, 'Manufacturing':5.0, 'Trade/Trans/Util':18.6, 'Government':7.6 }
+};
+
+// Render gap table
+(function() {
+  const d = joltsIndData22;
+  const body = document.getElementById('joltsGapBody22');
+  const order = ['Trade/Trans/Util','Ed & Health Svcs','Leisure & Hospitality','Prof & Business Svcs','Construction','Manufacturing','Government'];
+  order.forEach(ind => {
+    const h = d.data[ind].Hires[4], t = d.data[ind].TotalSep[4];
+    const net = (h !== null && t !== null) ? +(h-t).toFixed(1) : null;
+    const nfp = d.nfp2026avg[ind];
+    const gap = net !== null ? +(nfp-net).toFixed(1) : null;
+    const gapStr = gap !== null ? `${gap>=0?'+':''}${gap.toFixed(1)}` : '—';
+    let signal='—', cls='';
+    if (gap !== null) {
+      if (gap > 12)      { signal='⚠ HIGH — B-D risk'; cls='neg'; }
+      else if (gap > 5)  { signal='Moderate gap'; }
+      else if (gap < -5) { signal='JOLTS>NFP — may revise UP'; cls='pos'; }
+      else               { signal='Aligned ✓'; cls='pos'; }
+    }
+    const tr = document.createElement('tr');
+    if (gap !== null && gap > 12) tr.classList.add('hi');
+    tr.innerHTML = `
+      <td><strong>${ind}</strong></td>
+      <td class="num pos">${nfp !== undefined ? '+'+nfp.toFixed(1) : '—'}</td>
+      <td class="num">${h !== null ? h.toFixed(1) : '—'}</td>
+      <td class="num">${t !== null ? t.toFixed(1) : '—'}</td>
+      <td class="num" style="font-weight:600">${net !== null ? (net>=0?'+':'')+net.toFixed(1) : '—'}</td>
+      <td class="num ${gap!==null&&gap>0?'neg':'pos'}" style="font-weight:700">${gapStr}</td>
+      <td class="${cls}">${signal}</td>
+    `;
+    body.appendChild(tr);
+  });
+})();
+
+// Render full flows table
+(function() {
+  const d = joltsIndData22;
+  const body = document.getElementById('joltsIndBody22');
+  const fmtV = v => v !== null ? v.toFixed(1) : '—';
+  const metricKeys = ['Hires','Quits','Layoffs','TotalSep'];
+  const metricLabels = ['Hires','Quits','Layoffs','Total Sep','▸ Implied Net'];
+
+  d.industries.forEach((ind, ii) => {
+    const h = d.data[ind].Hires, t = d.data[ind].TotalSep;
+    const net = h.map((v,i) => (v!==null&&t[i]!==null) ? +(v-t[i]).toFixed(1) : null);
+    const allVals = [d.data[ind].Hires, d.data[ind].Quits, d.data[ind].Layoffs, t, net];
+
+    metricLabels.forEach((m, mi) => {
+      const vals = allVals[mi];
+      const yoy = (vals[4]!==null && vals[2]!==null) ? +(vals[4]-vals[2]).toFixed(1) : null;
+      const yoyStr = yoy!==null ? `${yoy>=0?'+':''}${yoy}` : '—';
+      const yoyCls = yoy!==null ? (yoy>=0?'pos':'neg') : '';
+      const tr = document.createElement('tr');
+      if (m.startsWith('▸')) tr.style.background='rgba(99,102,241,0.06)';
+      const col1 = mi===0 ? `<strong>${ind}</strong>` : '';
+      const col2Style = m.startsWith('▸') ? 'font-weight:600;color:var(--accent)' : 'color:var(--muted)';
+      tr.innerHTML = `
+        <td style="padding-left:12px;vertical-align:top">${col1}</td>
+        <td style="padding-left:${m.startsWith('▸')?'8':'20'}px;font-size:0.82rem;${col2Style}">${m}</td>
+        ${vals.map(v => `<td class="num">${fmtV(v)}</td>`).join('')}
+        <td class="num ${yoyCls}" style="font-weight:600">${yoyStr}</td>
+      `;
+      body.appendChild(tr);
+    });
+    const spacer = document.createElement('tr');
+    spacer.innerHTML = '<td colspan="8" style="padding:2px;border:none;"></td>';
+    body.appendChild(spacer);
+  });
+})();
+
+// Render chart
+(function() {
+  const d = joltsIndData22;
+  const inds = ['Construction','Ed & Health Svcs','Leisure & Hospitality','Manufacturing','Prof & Business Svcs','Trade/Trans/Util'];
+  new Chart(document.getElementById('joltsIndChart22'), {
+    type: 'bar',
+    data: {
+      labels: inds,
+      datasets: [
+        { label:'YTD2024 Hires', data: inds.map(i=>d.data[i].Hires[0]), backgroundColor:'rgba(34,197,94,0.5)',  borderColor:'#22c55e', borderWidth:1 },
+        { label:'YTD2025 Hires', data: inds.map(i=>d.data[i].Hires[2]), backgroundColor:'rgba(245,158,11,0.5)', borderColor:'#f59e0b', borderWidth:1 },
+        { label:'YTD2026 Hires', data: inds.map(i=>d.data[i].Hires[4]), backgroundColor:'rgba(239,68,68,0.5)',  borderColor:'#ef4444', borderWidth:1 },
+        { label:'YTD2024 Sep',   data: inds.map(i=>d.data[i].TotalSep[0]), backgroundColor:'rgba(34,197,94,0.15)', borderColor:'#22c55e', borderWidth:1 },
+        { label:'YTD2025 Sep',   data: inds.map(i=>d.data[i].TotalSep[2]), backgroundColor:'rgba(245,158,11,0.15)',borderColor:'#f59e0b', borderWidth:1 },
+        { label:'YTD2026 Sep',   data: inds.map(i=>d.data[i].TotalSep[4]), backgroundColor:'rgba(239,68,68,0.15)', borderColor:'#ef4444', borderWidth:1 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}}, tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}k`}} },
+      scales: { x:{ticks:{font:{size:10}}}, y:{ticks:{callback:v=>v.toLocaleString()+'k'}} }
+    }
   });
 })();
 
